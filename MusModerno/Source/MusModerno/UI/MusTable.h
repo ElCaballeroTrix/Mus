@@ -29,7 +29,7 @@ public:
 	void ShowPlayerPossibleActions(TArray<EMoves> PossiblePlayerMoves);
 	void UpdateTableBet(int32 BetValue);
 	void UpdatePhase(EBettingPhase Phase, bool Winner = false, EParticipant Participant = PLAYER);
-	void UpdatePiedras(EParticipant Participant, int32 Piedras);
+	void UpdatePiedras(EParticipant Participant, int32 Amarrakos, int32 Piedras);
 	void UpdatePlay(EParticipant Participant, EMoves Move);
 	void ResetPlays();
 	

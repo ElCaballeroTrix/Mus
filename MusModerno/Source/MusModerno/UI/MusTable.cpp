@@ -196,22 +196,22 @@ void UMusTable::UpdatePhase(EBettingPhase Phase, bool Winner, EParticipant Parti
 	PhaseTextBlock.Get()->SetText(FText::FromString(phaseText));
 }
 
-void UMusTable::UpdatePiedras(EParticipant Participant, int32 Piedras)
+void UMusTable::UpdatePiedras(EParticipant Participant, int32 Amarrakos, int32 Piedras)
 {
 	switch (Participant) {
 		case NOONE:
 			break;
 		case BOT1:
-				Bot1Piedras.Get()->SetText(FText::FromString(FString::Printf(TEXT("%d"), Piedras)));
+				Bot1Piedras.Get()->SetText(FText::FromString(FString::Printf(TEXT("A: %d, P: %d"), Amarrakos, Piedras)));
 			break;
 		case BOT2:
-				Bot2Piedras.Get()->SetText(FText::FromString(FString::Printf(TEXT("%d"), Piedras)));
+				Bot2Piedras.Get()->SetText(FText::FromString(FString::Printf(TEXT("A: %d, P: %d"), Amarrakos, Piedras)));
 			break;
 		case BOT3:
-				Bot3Piedras.Get()->SetText(FText::FromString(FString::Printf(TEXT("%d"), Piedras)));
+				Bot3Piedras.Get()->SetText(FText::FromString(FString::Printf(TEXT("A: %d, P: %d"), Amarrakos, Piedras)));
 			break;
 		case PLAYER:
-				PlayerPiedras.Get()->SetText(FText::FromString(FString::Printf(TEXT("%d"), Piedras)));
+				PlayerPiedras.Get()->SetText(FText::FromString(FString::Printf(TEXT("A: %d, P: %d"), Amarrakos, Piedras)));
 			break;
 	}
 }
@@ -368,6 +368,6 @@ void UMusTable::HideAllButtons()
 	OrdagoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
 	LeftActionButton.Get()->OnClicked().RemoveAll(this);
 	RightActionButton.Get()->OnClicked().RemoveAll(this);
-	ResetPlays();
+	// ResetPlays();
 }
 

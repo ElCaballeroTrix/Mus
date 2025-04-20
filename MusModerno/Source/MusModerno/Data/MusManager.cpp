@@ -2,6 +2,8 @@
 
 
 #include "MusManager.h"
+
+#include "BotAI.h"
 #include "GroupOfCardsTable.h"
 #include "Algo/RandomShuffle.h"
 #include "Blueprint/UserWidget.h"
@@ -30,10 +32,16 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 	switch (Move)
 	{
 		case SITENGO:
-				ParticipantsInTheCurrentBet.Add(Participant);
+				if(!ParticipantsInTheCurrentBet.Contains(Participant))
+				{
+					ParticipantsInTheCurrentBet.Add(Participant);
+				}
 			break;
 		case ENVIDO:
-				ParticipantsInTheCurrentBet.Add(Participant);
+				if(!ParticipantsInTheCurrentBet.Contains(Participant))
+				{
+					ParticipantsInTheCurrentBet.Add(Participant);
+				}
 				CurrentBetOnTable = EnvidoRocks;
 				MusTable.Get()->UpdateTableBet(CurrentBetOnTable);
 				ParticipantThatRaisedTheBet = CurrentParticipantIDInTurn;
@@ -90,15 +98,9 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 				}
 			}
 			//Check the plays
-			TMap<EParticipant, TMap<int32, int32>> participantsAllCards;
-			participantsAllCards.Add(BOT1, ParticipantsInfo[BOT1].ParticipantCardFrequency);
-			participantsAllCards.Add(BOT2, ParticipantsInfo[BOT2].ParticipantCardFrequency);
-			participantsAllCards.Add(BOT3, ParticipantsInfo[BOT3].ParticipantCardFrequency);
-			participantsAllCards.Add(PLAYER, ParticipantsInfo[PLAYER].ParticipantCardFrequency);
-			
 			switch (CurrentBettingPhase) {
 				case GRANDE:
-						WinnerOfGrande = CheckGrande(participantsAllCards);
+						WinnerOfGrande = CheckGrande();
 						if(noOneMadeABet || ParticipantsInTheCurrentBet.Num() == 1)
 						{
 							GrandeAmountWon = 1;
@@ -107,10 +109,11 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 						{
 							GrandeAmountWon = CurrentBetOnTable;
 						}
+						ResetBotEnvidos();
 						CurrentBettingPhase = CHICA;
 					break;
 				case CHICA:
-						WinnerOfChica = CheckChica(participantsAllCards);
+						WinnerOfChica = CheckChica();
 						if(noOneMadeABet || ParticipantsInTheCurrentBet.Num() == 1)
 						{
 							ChicaAmountWon = 1;
@@ -119,6 +122,7 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 						{
 							ChicaAmountWon = CurrentBetOnTable;
 						}
+						ResetBotEnvidos();
 						CurrentBettingPhase = TIENEPARES;
 						//Look who has a pair or higher
 						for (EParticipant participant : OrderOfParticipantsInGame)
@@ -141,41 +145,42 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 					break;
 				case TIENEPARES:
 						//If no one has a pair or better, pass round, otherwise detect the "PARES" winner
-						!noOneMadeABet ? CurrentBettingPhase = PARES : CurrentBettingPhase = TIENEJUEGO;
-					break;
-				case PARES:
-						WinnerOfPares = CheckPares(participantsAllCards);
-						ParesAmountWon += CurrentBetOnTable;
-						ParticipantsThatHavePares.Empty();
-						CurrentBettingPhase = TIENEJUEGO;
-						//Look who has a "JUEGO"
-						for (EParticipant participant : OrderOfParticipantsInGame)
+						if(!noOneMadeABet && ParticipantsInTheCurrentBet.Num() > 1)
 						{
-							int32 sumOfParticipantCard = 0;
-							for (FCards_Struct* participantCard : ParticipantsInfo[participant].ParticipantCards)
-							{
-								sumOfParticipantCard += participantCard->CardValue;
-							}
-							if(sumOfParticipantCard >= 31 && sumOfParticipantCard <= 40)
-							{
-								ParticipantsThatHaveJuego.Add(participant);
-							}
+							CurrentBettingPhase = PARES;
+						}
+						else if(ParticipantsInTheCurrentBet.Num() == 1)
+						{
+							//If only one participant has "PARES", let the game detect the winner and how
+							//many "piedras" it won. After that, go to "TIENEJUEGO" round
+							DetectWinnerOfParesAndPrepareForJuego();
+						}
+						else
+						{
+							CurrentBettingPhase = TIENEJUEGO;
 						}
 					break;
+				case PARES:
+						DetectWinnerOfParesAndPrepareForJuego();
+					break;
 				case TIENEJUEGO:
-						//If no one has a "JUEGO", pass go to "PUNTO" round
-						!noOneMadeABet ? CurrentBettingPhase = JUEGO : CurrentBettingPhase = PUNTO;
+						//If no one has a "JUEGO", go to "PUNTO" round. If only one participant has "JUEGO",
+						//let the game detect the winner and how many "piedras it won"
+						if(!noOneMadeABet && ParticipantsInTheCurrentBet.Num() > 1)
+						{
+							CurrentBettingPhase = JUEGO;
+						}
+						else if(ParticipantsInTheCurrentBet.Num() == 1)
+						{
+							DetectWinnerOfJuego();
+						}
+						else
+						{
+							CurrentBettingPhase = PUNTO;
+						}
 					break;
 				case JUEGO:
-						if(GEngine){GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::White, FString::Printf(TEXT("Winner Of GRANDE: %d"), WinnerOfGrande));}
-						if(GEngine){GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Orange, FString::Printf(TEXT("Winner Of CHICA: %d"), WinnerOfChica));}
-						WinnerOfJuego = CheckJuego();
-						JuegoAmountWon += CurrentBetOnTable;
-						if(GEngine){GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, FString::Printf(TEXT("Winner Of JUEGO: %d"), WinnerOfJuego));}
-						CurrentBettingPhase = RESUMEN;
-						CurrentParticipantIDInTurn = 0;
-						ParticipantsThatHaveJuego.Empty();
-						ShowWinners();
+						DetectWinnerOfJuego();
 					break;
 				case PUNTO:
 						if(GEngine){GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::White, FString::Printf(TEXT("Winner Of GRANDE: %d"), WinnerOfGrande));}
@@ -187,11 +192,13 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 						CurrentBettingPhase = RESUMEN;
 						CurrentParticipantIDInTurn = 0;
 						ParticipantsThatHaveJuego.Empty();
+						ResetBotEnvidos();
 						ShowWinners();
 					break;
 			}
 			ParticipantThatRaisedTheBet = 0;
 			CurrentBetOnTable = 0;
+			ParticipantsInTheCurrentBet.Empty();
 			MusTable.Get()->UpdateTableBet(CurrentBetOnTable);
 			MusTable.Get()->UpdatePhase(CurrentBettingPhase);
 			//Reset participants last move if not "PARES" or "JUEGO" phase, because, previously, some participants
@@ -208,7 +215,7 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 			{
 				//Start next betting round with the Hand
 				CurrentParticipantIDInTurn = 0;	
-				StarParticipantAction();
+				StartParticipantAction();
 			}
 		}
 		else
@@ -223,15 +230,22 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 		CurrentParticipantIDInTurn = 0;
 		CurrentBettingPhase = GRANDE;
 		MusTable.Get()->UpdatePhase(CurrentBettingPhase);
+		//TODO Check Frequency should only be called when new cards given and after discard
 		CheckFrequencyOfCardsInHand();
-		if(OrderOfParticipantsInGame[CurrentParticipantIDInTurn] == PLAYER)
+		ParticipantsAllCards.Empty();
+		ParticipantsAllCards.Add(BOT1, ParticipantsInfo[BOT1].ParticipantCardFrequency);
+		ParticipantsAllCards.Add(BOT2, ParticipantsInfo[BOT2].ParticipantCardFrequency);
+		ParticipantsAllCards.Add(BOT3, ParticipantsInfo[BOT3].ParticipantCardFrequency);
+		ParticipantsAllCards.Add(PLAYER, ParticipantsInfo[PLAYER].ParticipantCardFrequency);
+		//When "MUS, NOMUS" round is over, all bots should examine their cards
+		for (EParticipant participant : OrderOfParticipantsInGame)
 		{
-			TArray<EMoves> playerPossibleMoves;
-			playerPossibleMoves.Add(PASO),
-			playerPossibleMoves.Add(ENVIDO);
-			playerPossibleMoves.Add(ORDAGO);
-			MusTable.Get()->ShowPlayerPossibleActions(playerPossibleMoves);
+			if(ParticipantsInfo[participant].BotAI)
+			{
+				ParticipantsInfo[participant].BotAI->ExamineCards();
+			}
 		}
+		StartParticipantAction();
 	}
 	else
 	{
@@ -277,7 +291,7 @@ void UMusManager::SetValueOfCards()
 void UMusManager::AddCardToDeck(FCards_Struct* Card)
 {
 	//Kings, horses and jacks count as 10
-	if(Card->Number == 11 && Card->Number == 12)
+	if(Card->Number == 11 || Card->Number == 12)
 	{
 		Card->CardValue = 10;
 	}
@@ -300,23 +314,18 @@ void UMusManager::AddCardToDeck(FCards_Struct* Card)
 void UMusManager::StartGame()
 {
 	Bot1.ParticipantName = BOT1;
-	Bot1.HasAmarrakos = false;
-	Bot1.Partner = Bot3;
+	Bot1.BotAI = new BotAI(this, BOT1);
 	ParticipantsInfo.Add(BOT1, Bot1);
 
 	Bot2.ParticipantName = BOT2;
-	Bot2.HasAmarrakos = true;
-	Bot2.Partner = Player;
+	Bot2.BotAI = new BotAI(this, BOT2);
 	ParticipantsInfo.Add(BOT2, Bot2);
 
 	Bot3.ParticipantName = BOT3;
-	Bot3.HasAmarrakos = true;
-	Bot3.Partner = Bot1;
+	Bot3.BotAI = new BotAI(this, BOT3);
 	ParticipantsInfo.Add(BOT3, Bot3);
 
 	Player.ParticipantName = PLAYER;
-	Player.HasAmarrakos = false;
-	Player.Partner = Bot2;
 	ParticipantsInfo.Add(PLAYER, Player);
 	
 	MusTable = Cast<UMusTable>(CreateWidget(GetWorld(), MusTableClass));
@@ -357,15 +366,18 @@ void UMusManager::ShuffleAndGiveCards()
 	MusTable.Get()->SetParticipantsCards(BOT2, ParticipantsInfo[BOT2].ParticipantCards);
 	MusTable.Get()->SetParticipantsCards(BOT3, ParticipantsInfo[BOT3].ParticipantCards);
 	MusTable.Get()->SetParticipantsCards(PLAYER, ParticipantsInfo[PLAYER].ParticipantCards);
+
+	CheckFrequencyOfCardsInHand();
 }
 
-void UMusManager::StarParticipantAction()
+void UMusManager::StartParticipantAction()
 {
 	EParticipant currentParticipant = OrderOfParticipantsInGame[CurrentParticipantIDInTurn];
 	//First detect if the participant in turn passed. If it did, continue with the next one
 	if(ParticipantsInfo[currentParticipant].LastMove == PASO)
 	{
 		ParticipantCallsAMove(currentParticipant, PASO);
+		MusTable.Get()->UpdatePlay(currentParticipant, PASO);
 	}
 	//Next, check if current participant is PLAYER
 	else if(currentParticipant == PLAYER)
@@ -419,6 +431,17 @@ void UMusManager::StarParticipantAction()
 	}
 }
 
+void UMusManager::ResetBotEnvidos()
+{
+	for (EParticipant participant : OrderOfParticipantsInGame)
+	{
+		if(ParticipantsInfo[participant].BotAI)
+		{
+			ParticipantsInfo[participant].BotAI->ResetAmountOfEnvidos();
+		}
+	}
+}
+
 void UMusManager::FinishBotAction()
 {
 	EParticipant currentParticipant = OrderOfParticipantsInGame[CurrentParticipantIDInTurn];
@@ -452,23 +475,63 @@ void UMusManager::FinishBotAction()
 	}
 	else
 	{
-		switch (currentParticipant)
+		ParticipantsInfo[currentParticipant].BotAI->MakeAMove(CurrentBettingPhase);
+		MusTable.Get()->UpdatePlay(currentParticipant, ParticipantsInfo[currentParticipant].BotAI->GetBotMove());
+		ParticipantCallsAMove(currentParticipant, ParticipantsInfo[currentParticipant].BotAI->GetBotMove(), ParticipantsInfo[currentParticipant].BotAI->GetEnvidoRocks());
+	}
+}
+
+void UMusManager::DetectWinnerOfParesAndPrepareForJuego()
+{
+	WinnerOfPares = CheckPares();
+	ParesAmountWon += CurrentBetOnTable;
+	ParticipantsThatHavePares.Empty();
+	CurrentBettingPhase = TIENEJUEGO;
+	//Look who has a "JUEGO"
+	for (EParticipant participant : OrderOfParticipantsInGame)
+	{
+		int32 sumOfParticipantCard = 0;
+		for (FCards_Struct* participantCard : ParticipantsInfo[participant].ParticipantCards)
 		{
-		case BOT1:
-			//TODO REMOVE THIS, THIS IS FOR TESTING
-				MusTable.Get()->UpdatePlay(currentParticipant, ENVIDO);
-				ParticipantCallsAMove(BOT1, ENVIDO, CurrentBetOnTable + 2);
-			break;
-		case BOT2:
-				MusTable.Get()->UpdatePlay(currentParticipant, PASO);
-				ParticipantCallsAMove(BOT2, PASO, 0);
-			break;
-		case BOT3:
-				MusTable.Get()->UpdatePlay(currentParticipant, QUIERO);
-				ParticipantCallsAMove(BOT3, QUIERO, CurrentBetOnTable);
-			break;
+			sumOfParticipantCard += participantCard->CardValue;
+		}
+		if(sumOfParticipantCard >= 31 && sumOfParticipantCard <= 40)
+		{
+			ParticipantsThatHaveJuego.Add(participant);
 		}
 	}
+	ResetBotEnvidos();
+}
+
+void UMusManager::DetectWinnerOfJuego()
+{
+	if(GEngine){GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::White, FString::Printf(TEXT("Winner Of GRANDE: %d"), WinnerOfGrande));}
+	if(GEngine){GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Orange, FString::Printf(TEXT("Winner Of CHICA: %d"), WinnerOfChica));}
+	WinnerOfJuego = CheckJuego();
+	JuegoAmountWon += CurrentBetOnTable;
+	if(GEngine){GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, FString::Printf(TEXT("Winner Of JUEGO: %d"), WinnerOfJuego));}
+	CurrentBettingPhase = RESUMEN;
+	CurrentParticipantIDInTurn = 0;
+	ParticipantsThatHaveJuego.Empty();
+	ResetBotEnvidos();
+	ShowWinners();
+}
+
+bool UMusManager::AreAnyParticipantCloseToWinning()
+{
+	int32 numberOfRocksCloseToWinning = 30;
+	if(!CurrentMusRules.ObjectiveIs8Amarrakos)
+	{
+		numberOfRocksCloseToWinning = 20;
+	}
+	for (TTuple<EParticipant, FParticipantStruct> participantInfo : ParticipantsInfo)
+	{
+		if(participantInfo.Value.Piedras * participantInfo.Value.Amarrakos >= numberOfRocksCloseToWinning)
+		{
+			return true;	
+		}
+	}
+	return false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -488,7 +551,7 @@ void UMusManager::CheckFrequencyOfCardsInHand()
 	}
 }
 
-EParticipant UMusManager::CheckGrande(TMap<EParticipant, TMap<int32, int32>> ParticipantsAllCards)
+EParticipant UMusManager::CheckGrande()
 {
 	EParticipant winner = ParticipantsInTheCurrentBet[0];
 	TArray<EParticipant> participantsInTheBattle = ParticipantsInTheCurrentBet;
@@ -541,7 +604,7 @@ EParticipant UMusManager::CheckGrande(TMap<EParticipant, TMap<int32, int32>> Par
 	return winner;
 }
 
-EParticipant UMusManager::CheckChica(TMap<EParticipant, TMap<int32, int32>> ParticipantsAllCards)
+EParticipant UMusManager::CheckChica()
 {
 	EParticipant winner = ParticipantsInTheCurrentBet[0];
 	TArray<EParticipant> participantsInTheBattle = ParticipantsInTheCurrentBet;
@@ -595,7 +658,7 @@ EParticipant UMusManager::CheckChica(TMap<EParticipant, TMap<int32, int32>> Part
 	return winner;
 }
 
-EParticipant UMusManager::CheckPares(TMap<EParticipant, TMap<int32, int32>> ParticipantsAllCards)
+EParticipant UMusManager::CheckPares()
 {
 	//Detect how many double duos, trios and duos a participant has
 	EParticipant winner = NOONE;
@@ -842,19 +905,19 @@ int32 UMusManager::CheckMusRulesFor3sAnd2s(FCards_Struct* Card)
 
 void UMusManager::ChangeHand()
 {
-	for (int32 i = 0; i < OrderOfParticipantsInGame.Num(); i++)
+	for (int32 i = 0; i < OrderOfParticipantsInGame.Num() - 1; i++)
 	{
 		EParticipant saveParticipantForChange = OrderOfParticipantsInGame[i];
-		if(i + 1 == OrderOfParticipantsInGame.Num())
-		{
-			OrderOfParticipantsInGame[i] = OrderOfParticipantsInGame[0];
-			OrderOfParticipantsInGame[0] = saveParticipantForChange;
-		}
-		else
-		{
+		// if(i + 1 == OrderOfParticipantsInGame.Num())
+		// {
+		// 	OrderOfParticipantsInGame[i] = OrderOfParticipantsInGame[0];
+		// 	OrderOfParticipantsInGame[0] = saveParticipantForChange;
+		// }
+		// else
+		// {
 			OrderOfParticipantsInGame[i] = OrderOfParticipantsInGame[i + 1];
 			OrderOfParticipantsInGame[i + 1] = saveParticipantForChange;
-		}
+		// }
 	}
 }
 
@@ -865,7 +928,7 @@ void UMusManager::PassTurn()
 	{ 
 		CurrentParticipantIDInTurn = 0;	
 	}
-	StarParticipantAction();
+	StartParticipantAction();
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -885,16 +948,7 @@ void UMusManager::ShowWinners()
 
 void UMusManager::UpdateParticipantPiedras(EParticipant Participant)
 {
-	if(ParticipantsInfo[Participant].HasAmarrakos)
-	{
-		MusTable.Get()->UpdatePiedras(Participant, ParticipantsInfo[Participant].Amarrakos);
-		MusTable.Get()->UpdatePiedras(ParticipantsInfo[Participant].Partner.Get()->ParticipantName, ParticipantsInfo[Participant].Partner.Get()->Piedras);
-	}
-	else
-	{
-		MusTable.Get()->UpdatePiedras(Participant, ParticipantsInfo[Participant].Piedras);
-		MusTable.Get()->UpdatePiedras(ParticipantsInfo[Participant].Partner.Get()->ParticipantName, ParticipantsInfo[Participant].Partner.Get()->Amarrakos);
-	}
+	MusTable.Get()->UpdatePiedras(Participant, ParticipantsInfo[Participant].Amarrakos,ParticipantsInfo[Participant].Piedras);
 }
 
 void UMusManager::ShowGrandeWinner()
@@ -971,10 +1025,19 @@ void UMusManager::EndShowingWinners()
 	//When all round of winner have been done
 	//Start next round
 	CurrentBettingPhase = NONE;
+	BetsStarted = false;
 	MusTable.Get()->UpdatePhase(CurrentBettingPhase);
 	ChangeHand();
+	//Reset bot card info
+	for (EParticipant participant : OrderOfParticipantsInGame)
+	{
+		if(ParticipantsInfo[participant].BotAI)
+		{
+			ParticipantsInfo[participant].BotAI->ResetCardInformation();
+		}
+	}
 	//Update cards
 	ShuffleAndGiveCards();
-	StarParticipantAction();
+	StartParticipantAction();
 }
 

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "MusManager.generated.h"
 
+class BotAI;
 class UMusTable;
 struct FCards_Struct;
 /**
@@ -58,8 +59,7 @@ struct FParticipantStruct
 	int32 EnvidoValue = 0;
 	int32 Amarrakos = 0;
 	int32 Piedras = 0;
-	bool HasAmarrakos = false;
-	TObjectPtr<FParticipantStruct> Partner;
+	BotAI* BotAI;
 	FParticipantStruct()
 	{
 		InitializeCardFrequency();
@@ -78,21 +78,14 @@ struct FParticipantStruct
 
 	void AddPiedras(int32 NewPiedras)
 	{
-		if(!HasAmarrakos)
+		Piedras += NewPiedras;
+		for (int32 i = 0; i < Piedras; i++)
 		{
-			Piedras += NewPiedras;
-			for (int32 i = 0; i < Piedras; i++)
+			if(Piedras >= 5)
 			{
-				if(Piedras >= 5)
-				{
-					Piedras -= 5;
-					Partner.Get()->Amarrakos += 1;
-				}
+				Piedras -= 5;
+				Amarrakos += 1;
 			}
-		}
-		else
-		{
-			Partner.Get()->AddPiedras(NewPiedras);
 		}
 	}
 };
@@ -134,21 +127,22 @@ public:
 
 	void SetMusRules(FMusRules NewMusRules){ CurrentMusRules = NewMusRules;}
 	FMusRules GetCurrentMusRules(){ return CurrentMusRules; }
-
-	//---------------Player Actions----------------------------------//
+	//---------------Participants Functions----------------------------------//
 	void ParticipantCallsAMove(EParticipant Participant, EMoves Move, int32 EnvidoRocks = 0);
 	int32 GetCurrentBetOnTable(){ return CurrentBetOnTable; }
+	FParticipantStruct GetParticipantStruct(EParticipant Participant){ return ParticipantsInfo[Participant]; }
+	bool AreAnyParticipantCloseToWinning();
 	
 protected:
 	void OnStart() override;
 
 private:
-	TArray<FCards_Struct*> GameCards;
-	FMusRules CurrentMusRules;
-	FParticipantStruct Player;
 	FParticipantStruct Bot1;
 	FParticipantStruct Bot2;
 	FParticipantStruct Bot3;
+	FParticipantStruct Player;
+	TArray<FCards_Struct*> GameCards;
+	FMusRules CurrentMusRules;
 	TMap<EParticipant , FParticipantStruct> ParticipantsInfo;
 	TArray<EParticipant> OrderOfParticipantsInGame;
 	int32 CurrentParticipantIDInTurn = 0;
@@ -158,6 +152,7 @@ private:
 	int32 CurrentBetOnTable = 0;
 	int32 ParticipantThatRaisedTheBet = 0;
 	TArray<EParticipant> ParticipantsInTheCurrentBet;
+	TMap<EParticipant, TMap<int32, int32>> ParticipantsAllCards;
 	TObjectPtr<UMusTable> MusTable;
 	FTimerHandle BotActionTimer;
 	TArray<EParticipant> ParticipantsThatHavePares;
@@ -180,17 +175,19 @@ private:
 	void StartGame();
 	void ShuffleAndGiveCards();
 	//Sets a random time for bots to think their next move
-	void StarParticipantAction();
-
+	void StartParticipantAction();
+	void ResetBotEnvidos();
 	UFUNCTION()
 	void FinishBotAction();
 
 	//---------------PLAYS----------------------------------//
 	//Check the play a participant has
+	void DetectWinnerOfParesAndPrepareForJuego();
+	void DetectWinnerOfJuego();
 	void CheckFrequencyOfCardsInHand();
-	EParticipant CheckGrande(TMap<EParticipant, TMap<int32, int32>> ParticipantsAllCards);
-	EParticipant CheckChica(TMap<EParticipant, TMap<int32, int32>> ParticipantsAllCards);
-	EParticipant CheckPares(TMap<EParticipant, TMap<int32, int32>> ParticipantsAllCards);
+	EParticipant CheckGrande();
+	EParticipant CheckChica();
+	EParticipant CheckPares();
 	EParticipant CheckPokerOrTrio(TMap<EParticipant, int32> ParticipantsWithPokerOrTrio);
 	EParticipant CheckPairsIndividually(TMap<EParticipant, int32> ParticipantsWithADuo, TMap<EParticipant, int32> ParticipantsWithAnotherDuo);
 	EParticipant CheckJuego();
