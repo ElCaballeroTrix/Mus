@@ -7,6 +7,7 @@
 #include "MusModerno/Data/MusManager.h"
 #include "MusTable.generated.h"
 
+class UImage;
 class UCommonTextBlock;
 class UEnvidoWidget;
 struct FCards_Struct;
@@ -32,6 +33,9 @@ public:
 	void UpdatePiedras(EParticipant Participant, int32 Amarrakos, int32 Piedras);
 	void UpdatePlay(EParticipant Participant, EMoves Move);
 	void ResetPlays();
+	void BotCardsDiscard(EParticipant Participant, TArray<int32> CardsToDiscard);
+	void ActivePlayerCardsForDiscard();
+	void UpdateHand(EParticipant ParticipantHand);
 	
 protected:
 	//---------------Widgets----------------------------------//
@@ -84,6 +88,19 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> Bot3CardsWidget;
 	
+	//---------------HAND---------------------------------------------//
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UImage> PlayerHand;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UImage> Bot1Hand;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UImage> Bot2Hand;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UImage> Bot3Hand;
+	//---------------MUS TABLE VARIABLES--------------------------------//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Mus Table Info")
+	float DiscardTime = 2.5f;
+	
 	//---------------Native Functions----------------------------------//
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -94,24 +111,30 @@ private:
 	TArray<TObjectPtr<UCardWidget>> Bot1CurrentCards;
 	TArray<TObjectPtr<UCardWidget>> Bot2CurrentCards;
 	TArray<TObjectPtr<UCardWidget>> Bot3CurrentCards;
+	FTimerHandle DiscardTimerHandle;
+	EParticipant ParticipantDiscarting;
 	
 	UFUNCTION()
 	void PlayerCallsMus();
 	UFUNCTION()
-	void PlayersCallsNoMus();
+	void PlayerCallsNoMus();
 	UFUNCTION()
-	void PlayersCallsEnvido();
+	void PlayerCallsEnvido();
 	UFUNCTION()
-	void PlayersAcceptsEnvido();
+	void PlayerAcceptsEnvido();
 	UFUNCTION()
-	void PlayersPasses();
+	void PlayerPasses();
 	UFUNCTION()
 	void PlayerHasPairOrJuego();
 	UFUNCTION()
 	void PlayerDoesNotHavePairOrJuego();
 	UFUNCTION()
 	void PlayersCallsOrdago();
+	UFUNCTION()
+	void PlayersCallsDiscard();
 	
 	void HideAllButtons();
 	void SetCardsWidgets(TObjectPtr<UCanvasPanel> ParticipantCardsWidget , EParticipant Participant);
+	void WaitUntilDiscardAnimationIsComplete();
+	void DiscardOfParticipantFinished();
 };

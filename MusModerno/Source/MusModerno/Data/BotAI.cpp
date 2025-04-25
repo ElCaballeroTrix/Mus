@@ -72,7 +72,7 @@ void BotAI::MakeAMove(EBettingPhase CurrentBettingPhase)
 	if(CurrentBettingPhase == NONE)
 	{
 		//TODO When discard is finish, change this
-		MoveToMake = NOMUS;
+		MoveToMake = MUS;
 		EnvidoRocksMade = 0;
 		return;
 	}

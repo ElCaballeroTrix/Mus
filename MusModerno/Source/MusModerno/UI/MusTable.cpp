@@ -10,6 +10,7 @@
 #include "MusButton.h"
 #include "Components/CanvasPanel.h"
 #include "Components/HorizontalBox.h"
+#include "Components/Image.h"
 #include "MusModerno/Data/MusManager.h"
 
 void UMusTable::NativeConstruct()
@@ -19,18 +20,17 @@ void UMusTable::NativeConstruct()
 	MusManager = Cast<UMusManager>(GetGameInstance());
 	//TODO FOR NOW THERE IS NO DISCARD, CHANGE IN FUTURE
 	// LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsMus);
-	// LeftActionButton.Get()->SetText(FText::FromString("MUS"));
-	LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsNoMus);
-	LeftActionButton.Get()->SetTextOfButton(FText::FromString("MUS"));
-	RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsNoMus);
-	RightActionButton.Get()->SetTextOfButton(FText::FromString("NO MUS"));
-	EnvidoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
+	// LeftActionButton.Get()->SetTextOfButton(FText::FromString("MUS"));
+	// RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsNoMus);
+	// RightActionButton.Get()->SetTextOfButton(FText::FromString("NO MUS"));
+	// EnvidoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
 	EnvidoActionButton.Get()->SetTextOfButton(FText::FromString("ENVIDO"));
-	EnvidoActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsEnvido);
+	EnvidoActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsEnvido);
 	EnvidoWidget.Get()->SetVisibility(ESlateVisibility::Hidden);
-	OrdagoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
+	// OrdagoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
 	OrdagoActionButton.Get()->SetTextOfButton(FText::FromString(TEXT("Órdago")));
 	OrdagoActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsOrdago);
+	HideAllButtons();
 
 	//Hide Plays
 	Bot1PlayText.Get()->SetText(FText::GetEmpty());
@@ -58,31 +58,31 @@ void UMusTable::NativeDestruct()
 void UMusTable::SetParticipantsCards(EParticipant Participant, TArray<FCards_Struct*> NewCards)
 {
 	switch (Participant) {
-	case PLAYER:
-			PlayerCurrentCards[0]->SetCard(NewCards[0], false);
-			PlayerCurrentCards[1]->SetCard(NewCards[1], false);
-			PlayerCurrentCards[2]->SetCard(NewCards[2], false);
-			PlayerCurrentCards[3]->SetCard(NewCards[3], false);
-		break;
-	case BOT1:
-		//TODO Should change to UpsideDown True
-			Bot1CurrentCards[0]->SetCard(NewCards[0], false);
-			Bot1CurrentCards[1]->SetCard(NewCards[1], false);
-			Bot1CurrentCards[2]->SetCard(NewCards[2], false);
-			Bot1CurrentCards[3]->SetCard(NewCards[3], false);
-		break;
-	case BOT2:
-			Bot2CurrentCards[0]->SetCard(NewCards[0], false);
-			Bot2CurrentCards[1]->SetCard(NewCards[1], false);
-			Bot2CurrentCards[2]->SetCard(NewCards[2], false);
-			Bot2CurrentCards[3]->SetCard(NewCards[3], false);
-		break;
-	case BOT3:
-			Bot3CurrentCards[0]->SetCard(NewCards[0], false);
-			Bot3CurrentCards[1]->SetCard(NewCards[1], false);
-			Bot3CurrentCards[2]->SetCard(NewCards[2], false);
-			Bot3CurrentCards[3]->SetCard(NewCards[3], false);
-		break;
+		case PLAYER:
+				PlayerCurrentCards[0]->SetCard(NewCards[0], false);
+				PlayerCurrentCards[1]->SetCard(NewCards[1], false);
+				PlayerCurrentCards[2]->SetCard(NewCards[2], false);
+				PlayerCurrentCards[3]->SetCard(NewCards[3], false);
+			break;
+		case BOT1:
+			//TODO Should change to UpsideDown True
+				Bot1CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot1CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot1CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot1CurrentCards[3]->SetCard(NewCards[3], false);
+			break;
+		case BOT2:
+				Bot2CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot2CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot2CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot2CurrentCards[3]->SetCard(NewCards[3], false);
+			break;
+		case BOT3:
+				Bot3CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot3CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot3CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot3CurrentCards[3]->SetCard(NewCards[3], false);
+			break;
 	}
 }
 
@@ -101,12 +101,17 @@ void UMusTable::ShowPlayerPossibleActions(TArray<EMoves> PossiblePlayerMoves)
 			case NOMUS:
 					RightActionButton.Get()->SetTextOfButton(FText::FromString("NO MUS"));
 					RightActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsNoMus);
+					RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsNoMus);
+				break;
+			case DISCARD:
+					LeftActionButton.Get()->SetTextOfButton(FText::FromString("DESCARTE"));
+					LeftActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
+					LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsDiscard);
 				break;
 			case PASO:
 					RightActionButton.Get()->SetTextOfButton(FText::FromString("PASO"));
 					RightActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersPasses);
+					RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerPasses);
 				break;
 			case ENVIDO:
 					EnvidoWidget.Get()->SetVisibility(ESlateVisibility::Visible);
@@ -115,7 +120,7 @@ void UMusTable::ShowPlayerPossibleActions(TArray<EMoves> PossiblePlayerMoves)
 			case QUIERO:
 					LeftActionButton.Get()->SetTextOfButton(FText::FromString("QUIERO"));
 					LeftActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersAcceptsEnvido);
+					LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerAcceptsEnvido);
 				break;
 			case ORDAGO:
 					OrdagoActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
@@ -270,6 +275,58 @@ void UMusTable::ResetPlays()
 	// PlayerPlayText.Get()->SetText(FText::GetEmpty());
 }
 
+void UMusTable::BotCardsDiscard(EParticipant Participant, TArray<int32> CardsToDiscard)
+{
+	ParticipantDiscarting = Participant;
+	for (int32 i = 0; i < CardsToDiscard.Num(); i++)
+	{
+		switch (Participant) {
+			case BOT1:
+					Bot1CurrentCards[CardsToDiscard[i]].Get()->DissolveCard();
+				break;
+			case BOT2:
+					Bot2CurrentCards[CardsToDiscard[i]].Get()->DissolveCard();
+				break;
+			case BOT3:
+					Bot3CurrentCards[CardsToDiscard[i]].Get()->DissolveCard();
+				break;
+		}
+	}
+	WaitUntilDiscardAnimationIsComplete();
+}
+
+void UMusTable::ActivePlayerCardsForDiscard()
+{
+	for ( int32 i = 0 ; i < PlayerCurrentCards.Num(); i++)
+	{
+		PlayerCurrentCards[i].Get()->SetCardActive(true);
+	}
+}
+
+void UMusTable::UpdateHand(EParticipant ParticipantHand)
+{
+	Bot1Hand.Get()->SetVisibility(ESlateVisibility::Hidden);
+	Bot2Hand.Get()->SetVisibility(ESlateVisibility::Hidden);
+	Bot3Hand.Get()->SetVisibility(ESlateVisibility::Hidden);
+	PlayerHand.Get()->SetVisibility(ESlateVisibility::Hidden);
+	
+	switch (ParticipantHand)
+	{
+		case BOT1:
+				Bot1Hand.Get()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			break;
+		case BOT2:
+				Bot2Hand.Get()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			break;
+		case BOT3:
+				Bot3Hand.Get()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			break;
+		case PLAYER:
+				PlayerHand.Get()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			break;
+	}
+}
+
 void UMusTable::SetCardsWidgets(TObjectPtr<UCanvasPanel> ParticipantCardsWidget, EParticipant Participant)
 {
 	for (TObjectPtr<UWidget> cardWidget : ParticipantCardsWidget.Get()->GetAllChildren())
@@ -280,16 +337,16 @@ void UMusTable::SetCardsWidgets(TObjectPtr<UCanvasPanel> ParticipantCardsWidget,
 			switch (Participant)
 			{
 			case PLAYER:
-				PlayerCurrentCards.Add(card);
+					PlayerCurrentCards.Add(card);
 				break;
 			case BOT1:
-				Bot1CurrentCards.Add(card);
+					Bot1CurrentCards.Add(card);
 				break;
 			case BOT2:
-				Bot2CurrentCards.Add(card);
+					Bot2CurrentCards.Add(card);
 				break;
 			case BOT3:
-				Bot3CurrentCards.Add(card);
+					Bot3CurrentCards.Add(card);
 				break;
 			}
 		}
@@ -307,28 +364,28 @@ void UMusTable::PlayerCallsMus()
 	UpdatePlay(PLAYER, MUS);
 }
 
-void UMusTable::PlayersCallsNoMus()
+void UMusTable::PlayerCallsNoMus()
 {
 	HideAllButtons();
 	MusManager.Get()->ParticipantCallsAMove(EParticipant::PLAYER, EMoves::NOMUS);
 	UpdatePlay(PLAYER, NOMUS);
 }
 
-void UMusTable::PlayersCallsEnvido()
+void UMusTable::PlayerCallsEnvido()
 {
 	HideAllButtons();
 	MusManager.Get()->ParticipantCallsAMove(EParticipant::PLAYER, EMoves::ENVIDO,  MusManager.Get()->GetCurrentBetOnTable() + EnvidoWidget.Get()->GetEnvidio());
 	UpdatePlay(PLAYER, ENVIDO);
 }
 
-void UMusTable::PlayersAcceptsEnvido()
+void UMusTable::PlayerAcceptsEnvido()
 {
 	HideAllButtons();
 	MusManager.Get()->ParticipantCallsAMove(EParticipant::PLAYER, EMoves::QUIERO,  MusManager.Get()->GetCurrentBetOnTable());
 	UpdatePlay(PLAYER, QUIERO);
 }
 
-void UMusTable::PlayersPasses()
+void UMusTable::PlayerPasses()
 {
 	HideAllButtons();
 	MusManager.Get()->ParticipantCallsAMove(EParticipant::PLAYER, EMoves::PASO,  0);
@@ -358,6 +415,27 @@ void UMusTable::PlayersCallsOrdago()
 	UpdatePlay(PLAYER, ORDAGO);
 }
 
+void UMusTable::PlayersCallsDiscard()
+{
+	ParticipantDiscarting = PLAYER;
+	HideAllButtons();
+	TArray<int32> playerCardsToDiscard;
+	for ( int32 i = 0 ; i < PlayerCurrentCards.Num(); i++)
+	{
+		if(PlayerCurrentCards[i].Get()->IsCardToBeDiscarded())
+		{
+			playerCardsToDiscard.Add(i);
+			PlayerCurrentCards[i].Get()->DissolveCard();
+		}
+		else
+		{
+			PlayerCurrentCards[i].Get()->SetCardActive(false);
+		}
+	}
+	MusManager.Get()->DiscardParticipantCards(ParticipantDiscarting, playerCardsToDiscard);
+	WaitUntilDiscardAnimationIsComplete();
+}
+
 void UMusTable::HideAllButtons()
 {
 	ActionButtonsBox.Get()->SetVisibility(ESlateVisibility::Hidden);
@@ -369,5 +447,21 @@ void UMusTable::HideAllButtons()
 	LeftActionButton.Get()->OnClicked().RemoveAll(this);
 	RightActionButton.Get()->OnClicked().RemoveAll(this);
 	// ResetPlays();
+}
+
+
+void UMusTable::WaitUntilDiscardAnimationIsComplete()
+{
+	GetWorld()->GetTimerManager().SetTimer(
+				DiscardTimerHandle, // handle to cancel timer at a later time
+				this, // the owning object
+				&UMusTable::DiscardOfParticipantFinished, // function to call on elapsed
+				MusManager.Get()->CardsShowingAnimationTime, // float delay until elapsed
+			false);
+}
+
+void UMusTable::DiscardOfParticipantFinished()
+{
+	MusManager.Get()->ParticipantCallsAMove(ParticipantDiscarting, DISCARD,  0);
 }
 

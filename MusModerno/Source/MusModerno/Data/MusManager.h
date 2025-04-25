@@ -26,12 +26,13 @@ enum EMoves
 	NOMOVE = 0,
 	MUS = 1,
 	NOMUS = 2,
-	PASO = 3,
-	ENVIDO = 4,
-	QUIERO = 5,
-	ORDAGO = 6,
-	SITENGO = 7,
-	NOTENGO = 8
+	DISCARD = 3,
+	PASO = 4,
+	ENVIDO = 5,
+	QUIERO = 6,
+	ORDAGO = 7,
+	SITENGO = 8,
+	NOTENGO = 9
 };
 UENUM()
 enum EBettingPhase
@@ -120,6 +121,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Class")
 	TSubclassOf<UMusTable> MusTableClass;
 
+	//The time it takes to reveal a new cards when given
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Table Info")
+	float CardsShowingAnimationTime = 2.5f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Bot", meta = (UIMin = 1, UIMax = 15), meta = (ClampMin = 1, ClampMax = 15))
 	int64 MinBotThinkTime = 2;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Bot", meta = (UIMin = 1, UIMax = 15), meta = (ClampMin = 1, ClampMax = 15))
@@ -132,6 +137,7 @@ public:
 	int32 GetCurrentBetOnTable(){ return CurrentBetOnTable; }
 	FParticipantStruct GetParticipantStruct(EParticipant Participant){ return ParticipantsInfo[Participant]; }
 	bool AreAnyParticipantCloseToWinning();
+	void DiscardParticipantCards(EParticipant Participant, TArray<int32> CardsToBeDiscarded);
 	
 protected:
 	void OnStart() override;
@@ -143,12 +149,17 @@ private:
 	FParticipantStruct Player;
 	TArray<FCards_Struct*> GameCards;
 	FMusRules CurrentMusRules;
+	FTimerHandle StartGameHandle;
 	TMap<EParticipant , FParticipantStruct> ParticipantsInfo;
 	TArray<EParticipant> OrderOfParticipantsInGame;
 	int32 CurrentParticipantIDInTurn = 0;
 	int32 CurrentGameCardIndexInDeck = 0;
+	int32 AmountOfParticipantsThatWantMus = 0;
+	bool InDiscardPhase = false;
+	int32 AmountOfParticipantsThatDiscarded = 0;
+	FTimerHandle GiveCardsTimer;
 	bool BetsStarted = false;
-	EBettingPhase CurrentBettingPhase = GRANDE;
+	EBettingPhase CurrentBettingPhase = NONE;
 	int32 CurrentBetOnTable = 0;
 	int32 ParticipantThatRaisedTheBet = 0;
 	TArray<EParticipant> ParticipantsInTheCurrentBet;
@@ -174,6 +185,12 @@ private:
 	void AddCardToDeck(FCards_Struct* Card);
 	void StartGame();
 	void ShuffleAndGiveCards();
+	UFUNCTION()
+	void EndStartingGame();
+	//Give new cards to participants that discarded, wait a while and then, continue the game
+	void GiveNewCardsToParticipants();
+	UFUNCTION()
+	void EndDiscardPhase();
 	//Sets a random time for bots to think their next move
 	void StartParticipantAction();
 	void ResetBotEnvidos();

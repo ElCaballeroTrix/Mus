@@ -9,6 +9,8 @@
 #include "Blueprint/UserWidget.h"
 #include "MusModerno/UI/MusTable.h"
 
+#define NUMBER_OF_MUS_CARDS 40
+
 void UMusManager::OnStart()
 {
 	Super::OnStart();
@@ -223,9 +225,39 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 			PassTurn();
 		}
 	}
+	//If "MUS", add number of participants that want "MUS".
+	//If all participants say "MUS", start "DISCARD" phase
+	else if(Move == MUS)
+	{
+		++AmountOfParticipantsThatWantMus;
+		if(AmountOfParticipantsThatWantMus == OrderOfParticipantsInGame.Num())
+		{
+			//Start "DISCARD" phase
+			AmountOfParticipantsThatWantMus = 0;
+			InDiscardPhase = true;
+		}
+		PassTurn();
+	}
+	//If "DISCARD", pass turn
+	else if(Move == DISCARD)
+	{
+		++AmountOfParticipantsThatDiscarded;
+		if(AmountOfParticipantsThatDiscarded == 4)
+		{
+			//Give new cards to participants
+			AmountOfParticipantsThatDiscarded = 0;
+			InDiscardPhase = false;
+			GiveNewCardsToParticipants();
+		}
+		else
+		{
+			PassTurn();
+		}
+	}
 	//If "No MUS", start the Betting Phase
 	else if(Move == NOMUS)
 	{
+		AmountOfParticipantsThatWantMus = 0;
 		BetsStarted = true;
 		CurrentParticipantIDInTurn = 0;
 		CurrentBettingPhase = GRANDE;
@@ -366,8 +398,82 @@ void UMusManager::ShuffleAndGiveCards()
 	MusTable.Get()->SetParticipantsCards(BOT2, ParticipantsInfo[BOT2].ParticipantCards);
 	MusTable.Get()->SetParticipantsCards(BOT3, ParticipantsInfo[BOT3].ParticipantCards);
 	MusTable.Get()->SetParticipantsCards(PLAYER, ParticipantsInfo[PLAYER].ParticipantCards);
-
+	
 	CheckFrequencyOfCardsInHand();
+	GetWorld()->GetTimerManager().SetTimer(
+				StartGameHandle, // handle to cancel timer at a later time
+				this, // the owning object
+				&UMusManager::EndStartingGame, // function to call on elapsed
+				CardsShowingAnimationTime, // float delay until elapsed
+			false);
+}
+
+void UMusManager::EndStartingGame()
+{
+	MusTable.Get()->UpdatePhase(NONE);
+	//TODO this should not be PLAYER, it depende on who is the hand
+	TArray<EMoves> playerPossibleMoves;
+	playerPossibleMoves.Add(MUS);
+	playerPossibleMoves.Add(NOMUS);	
+	MusTable.Get()->ShowPlayerPossibleActions(playerPossibleMoves);
+	MusTable.Get()->UpdateHand(OrderOfParticipantsInGame[0]);
+}
+
+void UMusManager::GiveNewCardsToParticipants()
+{
+	bool didAParticipantDiscard = false;
+	for (EParticipant participant : OrderOfParticipantsInGame)
+	{
+		if(ParticipantsInfo[participant].ParticipantCards.Num() != 4)
+		{
+			didAParticipantDiscard = true;
+			while(ParticipantsInfo[participant].ParticipantCards.Num() != 4)
+			{
+				//If for some reason, all players called "MUS" and the deck of 40 cards emptied,
+				//restart the deck and check if the top one is owned by a participant or not, if it is pass
+				//to the next card
+				for (int32 i = 0; i < OrderOfParticipantsInGame.Num(); i++)
+				{
+					if(ParticipantsInfo[OrderOfParticipantsInGame[i]].ParticipantCards.Contains(GameCards[CurrentGameCardIndexInDeck]))
+					{
+						i = 0;
+						++CurrentGameCardIndexInDeck;
+						if(CurrentGameCardIndexInDeck == NUMBER_OF_MUS_CARDS)
+						{
+							CurrentGameCardIndexInDeck = 0;
+						}
+					}
+				}
+				ParticipantsInfo[participant].ParticipantCards.Add(GameCards[CurrentGameCardIndexInDeck]);
+				++CurrentGameCardIndexInDeck;
+				if(CurrentGameCardIndexInDeck == NUMBER_OF_MUS_CARDS)
+				{
+					CurrentGameCardIndexInDeck = 0;
+				}	
+			}
+			MusTable.Get()->SetParticipantsCards(participant, ParticipantsInfo[participant].ParticipantCards);
+		}
+	}
+	//If no one discarded any cards, continue game
+	if(!didAParticipantDiscard)
+	{
+		PassTurn();
+	}
+	//Else execute give cards animations
+	else
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+				GiveCardsTimer, // handle to cancel timer at a later time
+				this, // the owning object
+				&UMusManager::EndDiscardPhase, // function to call on elapsed
+				CardsShowingAnimationTime, // float delay until elapsed
+			false);
+	}
+}
+
+void UMusManager::EndDiscardPhase()
+{
+	PassTurn();
 }
 
 void UMusManager::StartParticipantAction()
@@ -386,8 +492,16 @@ void UMusManager::StartParticipantAction()
 		//If not in betting phase, player can only "MUS" or "NO MUS"
 		if(!BetsStarted)
         {
-        	playerPossibleMoves.Add(MUS);
-        	playerPossibleMoves.Add(NOMUS);
+			if(InDiscardPhase)
+			{
+				playerPossibleMoves.Add(DISCARD);
+				MusTable.Get()->ActivePlayerCardsForDiscard();
+			}
+			else
+			{
+				playerPossibleMoves.Add(MUS);
+				playerPossibleMoves.Add(NOMUS);	
+			}
         }
 		else
 		{
@@ -473,6 +587,13 @@ void UMusManager::FinishBotAction()
 			ParticipantCallsAMove(currentParticipant, NOTENGO, 0);	
 		}
 	}
+	else if (InDiscardPhase)
+	{
+		//TODO Bot should decide which cards to discard
+		TArray<int32> cardsToDiscard = {1,3};
+		MusTable.Get()->BotCardsDiscard(currentParticipant, cardsToDiscard);
+		DiscardParticipantCards(currentParticipant, cardsToDiscard);
+	}
 	else
 	{
 		ParticipantsInfo[currentParticipant].BotAI->MakeAMove(CurrentBettingPhase);
@@ -532,6 +653,21 @@ bool UMusManager::AreAnyParticipantCloseToWinning()
 		}
 	}
 	return false;
+}
+
+void UMusManager::DiscardParticipantCards(EParticipant Participant, TArray<int32> CardsToBeDiscarded)
+{
+	TArray<FCards_Struct*> cardsToRemove;
+	for (int32 i = 0; i < CardsToBeDiscarded.Num(); i++)
+	{
+		cardsToRemove.Add(ParticipantsInfo[Participant].ParticipantCards[CardsToBeDiscarded[i]]);
+	}
+	
+	for (int32 i = 0; i < cardsToRemove.Num(); i++)
+	{
+		ParticipantsInfo[Participant].ParticipantCards.Remove(cardsToRemove[i]);
+	}
+	cardsToRemove.Empty();
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -919,6 +1055,7 @@ void UMusManager::ChangeHand()
 			OrderOfParticipantsInGame[i + 1] = saveParticipantForChange;
 		// }
 	}
+	MusTable.Get()->UpdateHand(OrderOfParticipantsInGame[0]);
 }
 
 void UMusManager::PassTurn()
