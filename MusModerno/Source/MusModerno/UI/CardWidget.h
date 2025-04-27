@@ -22,8 +22,12 @@ public:
 	void DissolveCard();
 	bool IsCardToBeDiscarded(){ return DiscardCard; }
 	void GiveNewCard(FCards_Struct* _CardInfo, bool UpsideDown = true);
+	void ResetDissolve();
 	
 protected:
+	UPROPERTY(Transient,meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> IncreaseCardSize;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> CardImage;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))

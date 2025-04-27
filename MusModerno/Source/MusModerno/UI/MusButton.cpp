@@ -13,13 +13,16 @@ void UMusButton::NativePreConstruct()
 
 void UMusButton::SetTextOfButton(FText NewText)
 {
-	if(!NewText.IsEmpty())
+	if(MusButtonTextBlock)
 	{
-		MusButtonTextBlock.Get()->SetText(NewText);
-	}
-	else
-	{
-		MusButtonTextBlock.Get()->SetVisibility(ESlateVisibility::Hidden);
+		if(!NewText.IsEmpty())
+		{
+			MusButtonTextBlock.Get()->SetText(NewText);
+		}
+		else
+		{
+			MusButtonTextBlock.Get()->SetVisibility(ESlateVisibility::Hidden);
+		}
 	}
 }
 

@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "MusManager.generated.h"
 
+class UHomeMenu;
+class UMus_UserSettings;
 class BotAI;
 class UMusTable;
 struct FCards_Struct;
@@ -30,9 +32,10 @@ enum EMoves
 	PASO = 4,
 	ENVIDO = 5,
 	QUIERO = 6,
-	ORDAGO = 7,
-	SITENGO = 8,
-	NOTENGO = 9
+	NOQUIERO = 7,
+	ORDAGO = 8,
+	SITENGO = 9,
+	NOTENGO = 10
 };
 UENUM()
 enum EBettingPhase
@@ -45,7 +48,8 @@ enum EBettingPhase
 	TIENEJUEGO = 4,
 	JUEGO = 5,
 	PUNTO = 6,
-	RESUMEN = 7
+	RESUMEN = 7,
+	ORDAGOWINNER = 8
 };
 
 USTRUCT(BlueprintType, Blueprintable)
@@ -80,13 +84,10 @@ struct FParticipantStruct
 	void AddPiedras(int32 NewPiedras)
 	{
 		Piedras += NewPiedras;
-		for (int32 i = 0; i < Piedras; i++)
+		while(Piedras >= 5)
 		{
-			if(Piedras >= 5)
-			{
-				Piedras -= 5;
-				Amarrakos += 1;
-			}
+			Piedras -= 5;
+			Amarrakos += 1;
 		}
 	}
 };
@@ -120,6 +121,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Class")
 	TSubclassOf<UMusTable> MusTableClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Class")
+	TSubclassOf<UHomeMenu> HomeMenuClass;
 
 	//The time it takes to reveal a new cards when given
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Table Info")
@@ -130,7 +133,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Bot", meta = (UIMin = 1, UIMax = 15), meta = (ClampMin = 1, ClampMax = 15))
 	int64 MaxBotThinkTime = 5;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Options")
+	TObjectPtr<USoundMix> SoundMix;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Options")
+	TObjectPtr<USoundClass> MusicClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Options")
+	TObjectPtr<USoundClass> SFXClass;
+
+	void ShowTable();
+	void StartGame();
+	UFUNCTION(BlueprintCallable)
+	void ApplySettings();
 	void SetMusRules(FMusRules NewMusRules){ CurrentMusRules = NewMusRules;}
+	UFUNCTION(BlueprintCallable)
+	void SetMasterPostProcess(APostProcessVolume* _MasterPostProcess){ MasterPostProcess = _MasterPostProcess; }
 	FMusRules GetCurrentMusRules(){ return CurrentMusRules; }
 	//---------------Participants Functions----------------------------------//
 	void ParticipantCallsAMove(EParticipant Participant, EMoves Move, int32 EnvidoRocks = 0);
@@ -138,11 +154,15 @@ public:
 	FParticipantStruct GetParticipantStruct(EParticipant Participant){ return ParticipantsInfo[Participant]; }
 	bool AreAnyParticipantCloseToWinning();
 	void DiscardParticipantCards(EParticipant Participant, TArray<int32> CardsToBeDiscarded);
+	bool IsThereOrdago(){ return SomeonePlayedOrdago; }
 	
 protected:
+	TObjectPtr<APostProcessVolume> MasterPostProcess;
+	
 	void OnStart() override;
 
 private:
+	TObjectPtr<UMus_UserSettings> UserSettings;
 	FParticipantStruct Bot1;
 	FParticipantStruct Bot2;
 	FParticipantStruct Bot3;
@@ -161,6 +181,7 @@ private:
 	bool BetsStarted = false;
 	EBettingPhase CurrentBettingPhase = NONE;
 	int32 CurrentBetOnTable = 0;
+	bool SomeonePlayedOrdago = false;
 	int32 ParticipantThatRaisedTheBet = 0;
 	TArray<EParticipant> ParticipantsInTheCurrentBet;
 	TMap<EParticipant, TMap<int32, int32>> ParticipantsAllCards;
@@ -174,6 +195,7 @@ private:
 	EParticipant WinnerOfChica = NOONE;
 	EParticipant WinnerOfPares = NOONE;
 	EParticipant WinnerOfJuego = NOONE;
+	EParticipant WinnerOfOrdago = NOONE;
 	bool JuegoWentToPunto = false;
 	int32 GrandeAmountWon = 0;
 	int32 ChicaAmountWon = 0;
@@ -183,7 +205,6 @@ private:
 	//---------------FUNCTIONS----------------------------------//
 	void SetValueOfCards();
 	void AddCardToDeck(FCards_Struct* Card);
-	void StartGame();
 	void ShuffleAndGiveCards();
 	UFUNCTION()
 	void EndStartingGame();
@@ -214,6 +235,7 @@ private:
 	void ChangeHand();
 	void PassTurn();
 	void UpdateParticipantPiedras(EParticipant Participant);
+	void OrdagoInPlay();
 	void ShowWinners();
 	UFUNCTION()
 	void ShowGrandeWinner();
@@ -225,4 +247,8 @@ private:
 	void ShowJuegoWinner();
 	UFUNCTION()
 	void EndShowingWinners();
+	UFUNCTION()
+	void EndShowingOrdagoWinner();
+	UFUNCTION()
+	void NextRound();
 };

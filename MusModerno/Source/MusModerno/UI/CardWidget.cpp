@@ -43,6 +43,14 @@ void UCardWidget::SetCard(FCards_Struct* _CardInfo, bool UpsideDown)
 void UCardWidget::SetCardActive(bool CardActive)
 {	
 	SetIsEnabled(CardActive);
+	if(CardActive)
+	{
+		PlayAnimation(IncreaseCardSize);
+	}
+	else
+	{
+		PlayAnimationReverse(IncreaseCardSize);
+	}
 }
 
 void UCardWidget::DissolveCard()
@@ -60,6 +68,11 @@ void UCardWidget::DissolveCard()
 	}
 	DissolveBlend.Reset();
 	ShouldDissolve = true;
+}
+
+void UCardWidget::ResetDissolve()
+{
+	IsDissolvedCompletely = true;
 }
 
 void UCardWidget::NativeOnClicked()

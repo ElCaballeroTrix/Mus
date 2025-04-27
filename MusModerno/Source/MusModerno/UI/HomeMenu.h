@@ -6,7 +6,10 @@
 #include "Blueprint/UserWidget.h"
 #include "HomeMenu.generated.h"
 
-class UButton;
+class UOptions;
+class UMusManager;
+class UCommonActivatableWidgetStack;
+class UMusButton;
 /**
  *
  * Is this menu the player will decide the rules of the game as well as configure
@@ -19,5 +22,27 @@ class MUSMODERNO_API UHomeMenu : public UUserWidget
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UButton> StartGameButton;
+	TObjectPtr<UCommonActivatableWidgetStack> HomeMenuStack;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UMusButton> StartGameButton;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UMusButton> OptionsButton;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UMusButton> ExitButton;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Home Menu Classes")
+	TSubclassOf<UOptions> OptionsClass;
+
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+	
+private:
+	TObjectPtr<UMusManager> MusManager;
+	
+	UFUNCTION()
+	void StartGame();
+	UFUNCTION()
+	void ShowOptions();
+	UFUNCTION()
+	void ExitGame();
 };

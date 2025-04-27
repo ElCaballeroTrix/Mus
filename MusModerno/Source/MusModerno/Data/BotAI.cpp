@@ -15,6 +15,7 @@ BotAI::BotAI(TObjectPtr<UMusManager> _MusManager, EParticipant _Participant)
 
 void BotAI::ExamineCards()
 {
+	ResetCardInformation();
 	//Obtain current information of bot
 	FParticipantStruct botInfo = MusManager.Get()->GetParticipantStruct(Participant);
 	//Detect how many kings does bot have
@@ -66,17 +67,86 @@ void BotAI::ResetCardInformation()
 	AmountOfEnvidos = 0;
 }
 
+void BotAI::MusOrNoMus()
+{
+	EnvidoRocksMade = 0;
+	//If participant has a good hand, than "NO MUS"
+	//A good hand is having 2 or more kings, a poker, a trio, a pair and a king
+	//that way there is more probability of winning
+	if(
+		BotCardsInfo.NumberOfKings >= 2 || BotCardsInfo.PokerNumber != 0 || BotCardsInfo.TrioNumber != 0 ||
+		(BotCardsInfo.Pair1Number != 0 && BotCardsInfo.NumberOfKings == 1)
+		)
+	{
+		MoveToMake = NOMUS;
+	}
+	else
+	{
+		//Discard cards that are not kings taking into account, the current mus rules
+		//if they are not kings there is a light possibility to not discard it
+		FParticipantStruct botInfo = MusManager.Get()->GetParticipantStruct(Participant);
+		for (int32 i = 0; i < botInfo.ParticipantCards.Num(); i++)
+		{
+			int32 numberOfCard = botInfo.ParticipantCards[i]->Number;
+			if(MusManager.Get()->GetCurrentMusRules().KingsAndAces8)
+			{
+				if(numberOfCard != 12 && numberOfCard != 3)
+				{
+					if(FMath::RandRange(0.0f, 1.0f) < 0.95f)
+					{
+						CardsToBeDiscarded.Add(i);	
+					}
+				}
+			}
+			else
+			{
+				if(numberOfCard != 12)
+				{
+					CardsToBeDiscarded.Add(i);
+				}
+			}
+		}
+		MoveToMake = MUS;
+	}
+	
+}
+
 void BotAI::MakeAMove(EBettingPhase CurrentBettingPhase)
 {
+	CardsToBeDiscarded.Empty();
 	//Check if the game is in "MUS" phase, decide if it should discard any cards or not
 	if(CurrentBettingPhase == NONE)
 	{
-		//TODO When discard is finish, change this
-		MoveToMake = MUS;
-		EnvidoRocksMade = 0;
+		MusOrNoMus();
 		return;
 	}
 	//Else decide whether to bet or not
+	//First, watch out for "Órdagos"
+	if(MusManager.Get()->IsThereOrdago())
+	{
+		EMoves reactMoveToOrdago = PASO;
+		int32 reactEnvidoRocksToOrdago = 0;
+		//If bot likes to bluff, there is a possibility of going "Órdago"
+		if(MusManager.Get()->AreAnyParticipantCloseToWinning())
+		{
+			reactMoveToOrdago = ORDAGO;
+			reactEnvidoRocksToOrdago = MusManager.Get()->GetCurrentBetOnTable();
+		}
+		else if(CanBluff)
+		{
+			float randomPercentageOfBluff = FMath::RandRange(0.0f, 1.0f);
+			//TODO PONR 0.95 o asi
+			if(randomPercentageOfBluff >= 0.5f)
+			{
+				reactMoveToOrdago = ORDAGO;
+				reactEnvidoRocksToOrdago = MusManager.Get()->GetCurrentBetOnTable();
+			}
+		}
+		//If player is close to winning, then accept ordago
+		MoveToMake = reactMoveToOrdago;
+		EnvidoRocksMade = reactEnvidoRocksToOrdago;
+		return;
+	}
 	//First check if it has not done 3 "envidos" in the same round
 	//if it did, then do "QUIERO" move
 	if(AmountOfEnvidos == 3)
@@ -97,7 +167,7 @@ void BotAI::MakeAMove(EBettingPhase CurrentBettingPhase)
 	//or "ÓRDAGO" if rivals or him are close to winning
 	if(!canPlay && CanBluff)
 	{
-		float randomPercentageOfBluff = FMath::RandRange(0, 1);
+		float randomPercentageOfBluff = FMath::RandRange(0.0f, 1.0f);
 		if(randomPercentageOfBluff >= 0.5f)
 		{
 			canPlay = true; 
@@ -109,7 +179,7 @@ void BotAI::MakeAMove(EBettingPhase CurrentBettingPhase)
 	{
 		//Here, the bot detects the percentage it has of winning, there is a possibility of passing or not
 		float possibilityOfPlaying = 0.0f;
-		float randomPercentageOfPlaying = FMath::RandRange(0, 1);
+		float randomPercentageOfPlaying = FMath::RandRange(0.0f, 1.0f);
 		switch (CurrentBettingPhase) {
 			case GRANDE:
 					possibilityOfPlaying += BotCardsInfo.NumberOfKings / 4;
@@ -181,7 +251,7 @@ void BotAI::MakeAMove(EBettingPhase CurrentBettingPhase)
 		//If someone made a bet, there is a possibility of incrementing the bet, or playing what is on table
 		if(MusManager.Get()->GetCurrentBetOnTable() > 0)
 		{
-			float randomPercentage = FMath::RandRange(0, 1);
+			float randomPercentage = FMath::RandRange(0.0f, 1.0f);
 			if(randomPercentage >= 0.7f)
 			{
 				//If someone is close to winning, through "ÓRDAGO"

@@ -7,6 +7,11 @@
 #include "MusModerno/Data/MusManager.h"
 #include "MusTable.generated.h"
 
+class UHomeMenu;
+class UGameOver;
+class UCommonActivatableWidget;
+class UCommonActivatableWidgetStack;
+class UVerticalBox;
 class UImage;
 class UCommonTextBlock;
 class UEnvidoWidget;
@@ -14,7 +19,6 @@ struct FCards_Struct;
 enum EParticipant : int;
 class UCanvasPanel;
 class UCardWidget;
-class UHorizontalBox;
 class UMusButton;
 class UMusManager;
 /**
@@ -30,22 +34,31 @@ public:
 	void ShowPlayerPossibleActions(TArray<EMoves> PossiblePlayerMoves);
 	void UpdateTableBet(int32 BetValue);
 	void UpdatePhase(EBettingPhase Phase, bool Winner = false, EParticipant Participant = PLAYER);
+	void EmptyPhaseText();
 	void UpdatePiedras(EParticipant Participant, int32 Amarrakos, int32 Piedras);
 	void UpdatePlay(EParticipant Participant, EMoves Move);
 	void ResetPlays();
-	void BotCardsDiscard(EParticipant Participant, TArray<int32> CardsToDiscard);
+	void ParticipantsCardsDiscard(EParticipant Participant, TArray<int32> CardsToDiscard, bool IsInDiscardingPhase = true);
 	void ActivePlayerCardsForDiscard();
 	void UpdateHand(EParticipant ParticipantHand);
+	void ShowAllCards();
+	void GameEnded(bool PlayerWon);
 	
 protected:
 	//---------------Widgets----------------------------------//
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UCommonActivatableWidgetStack> TableStack;
 	//Action Buttons
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UHorizontalBox> ActionButtonsBox;
+	TObjectPtr<UVerticalBox> ActionButtonsBox;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UMusButton> LeftActionButton;
+	TObjectPtr<UMusButton> MusActionButton;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UMusButton> RightActionButton;
+	TObjectPtr<UMusButton> NoMusActionButton;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UMusButton> UpperActionButton;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UMusButton> LowerActionButton;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UMusButton> EnvidoActionButton;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
@@ -100,6 +113,10 @@ protected:
 	//---------------MUS TABLE VARIABLES--------------------------------//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Mus Table Info")
 	float DiscardTime = 2.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Mus Table Info| Classes")
+	TSubclassOf<UCommonActivatableWidget> GameOverClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Mus Table Info| Classes")
+	TSubclassOf<UHomeMenu> HomeMenuClass;
 	
 	//---------------Native Functions----------------------------------//
 	virtual void NativeConstruct() override;
@@ -113,6 +130,7 @@ private:
 	TArray<TObjectPtr<UCardWidget>> Bot3CurrentCards;
 	FTimerHandle DiscardTimerHandle;
 	EParticipant ParticipantDiscarting;
+	TObjectPtr<UGameOver> GameOver;
 	
 	UFUNCTION()
 	void PlayerCallsMus();
@@ -122,6 +140,8 @@ private:
 	void PlayerCallsEnvido();
 	UFUNCTION()
 	void PlayerAcceptsEnvido();
+	UFUNCTION()
+	void PlayerDeniesEnvido();
 	UFUNCTION()
 	void PlayerPasses();
 	UFUNCTION()
@@ -137,4 +157,6 @@ private:
 	void SetCardsWidgets(TObjectPtr<UCanvasPanel> ParticipantCardsWidget , EParticipant Participant);
 	void WaitUntilDiscardAnimationIsComplete();
 	void DiscardOfParticipantFinished();
+	UFUNCTION()
+	void ReturnToHomeMenu();
 };

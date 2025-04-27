@@ -7,27 +7,29 @@
 #include "CommonButtonBase.h"
 #include "CommonTextBlock.h"
 #include "EnvidoWidget.h"
+#include "GameOver.h"
+#include "HomeMenu.h"
 #include "MusButton.h"
 #include "Components/CanvasPanel.h"
-#include "Components/HorizontalBox.h"
 #include "Components/Image.h"
+#include "Components/VerticalBox.h"
 #include "MusModerno/Data/MusManager.h"
+#include "Widgets/CommonActivatableWidgetContainer.h"
 
 void UMusTable::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	MusManager = Cast<UMusManager>(GetGameInstance());
-	//TODO FOR NOW THERE IS NO DISCARD, CHANGE IN FUTURE
-	// LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsMus);
-	// LeftActionButton.Get()->SetTextOfButton(FText::FromString("MUS"));
-	// RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsNoMus);
-	// RightActionButton.Get()->SetTextOfButton(FText::FromString("NO MUS"));
-	// EnvidoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
+	PhaseTextBlock.Get()->SetText(FText::GetEmpty());
+	TableBet.Get()->SetText(FText::GetEmpty());
+	MusActionButton.Get()->SetTextOfButton(FText::FromString("MUS"));
+	MusActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsMus);
+	NoMusActionButton.Get()->SetTextOfButton(FText::FromString("NO MUS"));
+	NoMusActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsNoMus);
 	EnvidoActionButton.Get()->SetTextOfButton(FText::FromString("ENVIDO"));
 	EnvidoActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsEnvido);
 	EnvidoWidget.Get()->SetVisibility(ESlateVisibility::Hidden);
-	// OrdagoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
 	OrdagoActionButton.Get()->SetTextOfButton(FText::FromString(TEXT("Órdago")));
 	OrdagoActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsOrdago);
 	HideAllButtons();
@@ -49,8 +51,10 @@ void UMusTable::NativeDestruct()
 {
 	Super::NativeDestruct();
 
-	LeftActionButton.Get()->OnClicked().RemoveAll(this);
-	RightActionButton.Get()->OnClicked().RemoveAll(this);
+	MusActionButton.Get()->OnClicked().RemoveAll(this);
+	NoMusActionButton.Get()->OnClicked().RemoveAll(this);
+	UpperActionButton.Get()->OnClicked().RemoveAll(this);
+	LowerActionButton.Get()->OnClicked().RemoveAll(this);
 	EnvidoActionButton.Get()->OnClicked().RemoveAll(this);
 	OrdagoActionButton.Get()->OnClicked().RemoveAll(this);
 }
@@ -59,28 +63,44 @@ void UMusTable::SetParticipantsCards(EParticipant Participant, TArray<FCards_Str
 {
 	switch (Participant) {
 		case PLAYER:
+				PlayerCurrentCards[0]->ResetDissolve();
 				PlayerCurrentCards[0]->SetCard(NewCards[0], false);
+				PlayerCurrentCards[1]->ResetDissolve();
 				PlayerCurrentCards[1]->SetCard(NewCards[1], false);
+				PlayerCurrentCards[2]->ResetDissolve();
 				PlayerCurrentCards[2]->SetCard(NewCards[2], false);
+				PlayerCurrentCards[3]->ResetDissolve();
 				PlayerCurrentCards[3]->SetCard(NewCards[3], false);
 			break;
 		case BOT1:
 			//TODO Should change to UpsideDown True
+				Bot1CurrentCards[0]->ResetDissolve();
 				Bot1CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot1CurrentCards[1]->ResetDissolve();
 				Bot1CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot1CurrentCards[2]->ResetDissolve();
 				Bot1CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot1CurrentCards[3]->ResetDissolve();
 				Bot1CurrentCards[3]->SetCard(NewCards[3], false);
 			break;
 		case BOT2:
+				Bot2CurrentCards[0]->ResetDissolve();
 				Bot2CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot2CurrentCards[1]->ResetDissolve();
 				Bot2CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot2CurrentCards[2]->ResetDissolve();
 				Bot2CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot2CurrentCards[3]->ResetDissolve();
 				Bot2CurrentCards[3]->SetCard(NewCards[3], false);
 			break;
 		case BOT3:
+				Bot3CurrentCards[0]->ResetDissolve();
 				Bot3CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot3CurrentCards[1]->ResetDissolve();
 				Bot3CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot3CurrentCards[2]->ResetDissolve();
 				Bot3CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot3CurrentCards[3]->ResetDissolve();
 				Bot3CurrentCards[3]->SetCard(NewCards[3], false);
 			break;
 	}
@@ -94,46 +114,47 @@ void UMusTable::ShowPlayerPossibleActions(TArray<EMoves> PossiblePlayerMoves)
 		switch (possibleMove)
 		{
 			case MUS:
-					LeftActionButton.Get()->SetTextOfButton(FText::FromString("MUS"));
-					LeftActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsMus);
+					MusActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
 				break;
 			case NOMUS:
-					RightActionButton.Get()->SetTextOfButton(FText::FromString("NO MUS"));
-					RightActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerCallsNoMus);
+					NoMusActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
 				break;
 			case DISCARD:
-					LeftActionButton.Get()->SetTextOfButton(FText::FromString("DESCARTE"));
-					LeftActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsDiscard);
+					LowerActionButton.Get()->SetTextOfButton(FText::FromString("DESCARTE"));
+					LowerActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
+					LowerActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayersCallsDiscard);
 				break;
 			case PASO:
-					RightActionButton.Get()->SetTextOfButton(FText::FromString("PASO"));
-					RightActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerPasses);
+					LowerActionButton.Get()->SetTextOfButton(FText::FromString("PASO"));
+					LowerActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
+					LowerActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerPasses);
 				break;
 			case ENVIDO:
 					EnvidoWidget.Get()->SetVisibility(ESlateVisibility::Visible);
 					EnvidoActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
 				break;
 			case QUIERO:
-					LeftActionButton.Get()->SetTextOfButton(FText::FromString("QUIERO"));
-					LeftActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					LeftActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerAcceptsEnvido);
+					UpperActionButton.Get()->SetTextOfButton(FText::FromString("QUIERO"));
+					UpperActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
+					UpperActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerAcceptsEnvido);
+				break;
+			case NOQUIERO:
+					LowerActionButton.Get()->SetTextOfButton(FText::FromString("NO QUIERO"));
+					LowerActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
+					LowerActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerPasses);
 				break;
 			case ORDAGO:
 					OrdagoActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
 				break;
 			case SITENGO:
-					RightActionButton.Get()->SetTextOfButton(FText::FromString(TEXT("SÍ")));
-					RightActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerHasPairOrJuego);
+					LowerActionButton.Get()->SetTextOfButton(FText::FromString(TEXT("SÍ")));
+					LowerActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
+					LowerActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerHasPairOrJuego);
 				break;
 			case NOTENGO:
-					RightActionButton.Get()->SetTextOfButton(FText::FromString("NO"));
-					RightActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
-					RightActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerDoesNotHavePairOrJuego);
+					LowerActionButton.Get()->SetTextOfButton(FText::FromString("NO"));
+					LowerActionButton.Get()->SetVisibility(ESlateVisibility::Visible);
+					LowerActionButton.Get()->OnClicked().AddUObject(this, &UMusTable::PlayerDoesNotHavePairOrJuego);
 				break;
 		}
 	}
@@ -197,8 +218,17 @@ void UMusTable::UpdatePhase(EBettingPhase Phase, bool Winner, EParticipant Parti
 		case RESUMEN:
 				phaseText.Append("RESUMEN");
 			break;
+		case ORDAGOWINNER:
+			phaseText.Append(TEXT("ÓRDAGO"));
+		break;
 	}
 	PhaseTextBlock.Get()->SetText(FText::FromString(phaseText));
+}
+
+void UMusTable::EmptyPhaseText()
+{
+	PhaseTextBlock.Get()->SetText(FText::GetEmpty());
+	TableBet.Get()->SetText(FText::GetEmpty());
 }
 
 void UMusTable::UpdatePiedras(EParticipant Participant, int32 Amarrakos, int32 Piedras)
@@ -226,6 +256,9 @@ void UMusTable::UpdatePlay(EParticipant Participant, EMoves Move)
 	//Transform the EMoves to String
 	FString playText;
 	switch (Move) {
+		case NOMOVE:
+				playText = "";
+			break;
 		case MUS:
 				playText = "MUS";
 			break;
@@ -240,6 +273,9 @@ void UMusTable::UpdatePlay(EParticipant Participant, EMoves Move)
 			break;
 		case QUIERO:
 				playText = "QUIERO";
+			break;
+		case NOQUIERO:
+				playText = "NO QUIERO";
 			break;
 		case ORDAGO:
 				playText = TEXT("ÓRDAGO");
@@ -272,15 +308,19 @@ void UMusTable::ResetPlays()
 	Bot1PlayText.Get()->SetText(FText::GetEmpty());
 	Bot2PlayText.Get()->SetText(FText::GetEmpty());
 	Bot3PlayText.Get()->SetText(FText::GetEmpty());
-	// PlayerPlayText.Get()->SetText(FText::GetEmpty());
+	PlayerPlayText.Get()->SetText(FText::GetEmpty());
 }
 
-void UMusTable::BotCardsDiscard(EParticipant Participant, TArray<int32> CardsToDiscard)
+void UMusTable::ParticipantsCardsDiscard(EParticipant Participant, TArray<int32> CardsToDiscard,
+	bool IsInDiscardingPhase)
 {
 	ParticipantDiscarting = Participant;
 	for (int32 i = 0; i < CardsToDiscard.Num(); i++)
 	{
 		switch (Participant) {
+			case PLAYER:
+					PlayerCurrentCards[CardsToDiscard[i]].Get()->DissolveCard();
+				break;
 			case BOT1:
 					Bot1CurrentCards[CardsToDiscard[i]].Get()->DissolveCard();
 				break;
@@ -292,7 +332,10 @@ void UMusTable::BotCardsDiscard(EParticipant Participant, TArray<int32> CardsToD
 				break;
 		}
 	}
-	WaitUntilDiscardAnimationIsComplete();
+	if(IsInDiscardingPhase)
+	{
+		WaitUntilDiscardAnimationIsComplete();
+	}
 }
 
 void UMusTable::ActivePlayerCardsForDiscard()
@@ -325,6 +368,17 @@ void UMusTable::UpdateHand(EParticipant ParticipantHand)
 				PlayerHand.Get()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 			break;
 	}
+}
+
+void UMusTable::ShowAllCards()
+{
+}
+
+void UMusTable::GameEnded(bool PlayerWon)
+{
+	GameOver = Cast<UGameOver>(TableStack.Get()->AddWidget(GameOverClass));
+	GameOver.Get()->OnExitSignature.AddDynamic(this, &UMusTable::ReturnToHomeMenu);
+	GameOver.Get()->PlayerWon(PlayerWon);
 }
 
 void UMusTable::SetCardsWidgets(TObjectPtr<UCanvasPanel> ParticipantCardsWidget, EParticipant Participant)
@@ -385,6 +439,13 @@ void UMusTable::PlayerAcceptsEnvido()
 	UpdatePlay(PLAYER, QUIERO);
 }
 
+void UMusTable::PlayerDeniesEnvido()
+{
+	HideAllButtons();
+	MusManager.Get()->ParticipantCallsAMove(EParticipant::PLAYER, EMoves::NOQUIERO,  0);
+	UpdatePlay(PLAYER, NOQUIERO);
+}
+
 void UMusTable::PlayerPasses()
 {
 	HideAllButtons();
@@ -438,14 +499,16 @@ void UMusTable::PlayersCallsDiscard()
 
 void UMusTable::HideAllButtons()
 {
+	MusActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
+	NoMusActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
 	ActionButtonsBox.Get()->SetVisibility(ESlateVisibility::Hidden);
-	LeftActionButton.Get()->SetVisibility(ESlateVisibility::Collapsed);
-	RightActionButton.Get()->SetVisibility(ESlateVisibility::Collapsed);
+	UpperActionButton.Get()->SetVisibility(ESlateVisibility::Collapsed);
+	LowerActionButton.Get()->SetVisibility(ESlateVisibility::Collapsed);
 	EnvidoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
 	EnvidoWidget.Get()->SetVisibility(ESlateVisibility::Hidden);
 	OrdagoActionButton.Get()->SetVisibility(ESlateVisibility::Hidden);
-	LeftActionButton.Get()->OnClicked().RemoveAll(this);
-	RightActionButton.Get()->OnClicked().RemoveAll(this);
+	UpperActionButton.Get()->OnClicked().RemoveAll(this);
+	LowerActionButton.Get()->OnClicked().RemoveAll(this);
 	// ResetPlays();
 }
 
@@ -463,5 +526,12 @@ void UMusTable::WaitUntilDiscardAnimationIsComplete()
 void UMusTable::DiscardOfParticipantFinished()
 {
 	MusManager.Get()->ParticipantCallsAMove(ParticipantDiscarting, DISCARD,  0);
+}
+
+void UMusTable::ReturnToHomeMenu()
+{
+	GameOver.Get()->OnExitSignature.RemoveAll(this);
+	CreateWidget(GetWorld(), HomeMenuClass)->AddToViewport();
+	RemoveFromParent();
 }
 

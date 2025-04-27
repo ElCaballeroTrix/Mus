@@ -26,6 +26,7 @@ public:
 	EMoves GetBotMove() { return MoveToMake; }
 	int32 GetEnvidoRocks(){ return EnvidoRocksMade; }
 	void ResetAmountOfEnvidos(){ AmountOfEnvidos = 0; }
+	TArray<int32> GetCardsToBeDiscarded(){ return CardsToBeDiscarded; }
 	
 private:
 	BotCardsInfo BotCardsInfo;
@@ -37,4 +38,10 @@ private:
 	//This variable is to limit the amount of "envidos" in a round to 3.
 	//This is done so that the bot don't send "envidos" infinitely
 	int32 AmountOfEnvidos = 0;
+	//Cards to be discarded
+	TArray<int32> CardsToBeDiscarded;
+
+	//Detects if it should "MUS" or not.
+	//If "MUS", it decides which cards to discard
+	void MusOrNoMus();
 };
