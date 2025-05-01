@@ -23,13 +23,19 @@ public:
 	bool IsCardToBeDiscarded(){ return DiscardCard; }
 	void GiveNewCard(FCards_Struct* _CardInfo, bool UpsideDown = true);
 	void ResetDissolve();
+	void GlowCard(bool ShouldGlow);
+	void FlipCard();
 	
 protected:
 	UPROPERTY(Transient,meta = (BindWidgetAnim))
 	TObjectPtr<UWidgetAnimation> IncreaseCardSize;
+	UPROPERTY(Transient,meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> CardFlipAnimation;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> CardImage;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UImage> CardImageBack;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> CardImageGlow;
 	
@@ -58,11 +64,13 @@ protected:
 	
 private:
 	FCards_Struct* CardInfo;
+	bool IsUpsideDown = false;
 	//If the player has clicked the card to be discarded, it will be noted for future discard,
 	//ones the player clicks the discard button
 	bool DiscardCard = false;
 	//This "dissolve" material will be used to make a card disappear
 	TObjectPtr<UMaterialInstanceDynamic> DynamicMat;
+	TObjectPtr<UMaterialInstanceDynamic> DynamicMat2;
 	bool ShouldDissolve = false;
 	bool IsDissolvedCompletely = true;
 	FAlphaBlend DissolveBlend;

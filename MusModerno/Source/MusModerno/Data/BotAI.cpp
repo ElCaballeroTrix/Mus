@@ -2,15 +2,13 @@
 
 #include "GroupOfCardsTable.h"
 #include "MusManager.h"
-#include "Algo/RandomShuffle.h"
 
 BotAI::BotAI(TObjectPtr<UMusManager> _MusManager, EParticipant _Participant)
 {
 	MusManager = _MusManager;
 	Participant = _Participant;
 	TArray<bool> buffScenario = {true, false};
-	Algo::RandomShuffle(buffScenario);
-	CanBluff = buffScenario[0];
+	CanBluff = buffScenario[FMath::RandRange( 0, 1)];
 }
 
 void BotAI::ExamineCards()
@@ -70,7 +68,7 @@ void BotAI::ResetCardInformation()
 void BotAI::MusOrNoMus()
 {
 	EnvidoRocksMade = 0;
-	//If participant has a good hand, than "NO MUS"
+	//If participant has a good hand, then "NO MUS"
 	//A good hand is having 2 or more kings, a poker, a trio, a pair and a king
 	//that way there is more probability of winning
 	if(
@@ -92,7 +90,7 @@ void BotAI::MusOrNoMus()
 			{
 				if(numberOfCard != 12 && numberOfCard != 3)
 				{
-					if(FMath::RandRange(0.0f, 1.0f) < 0.95f)
+					if(FMath::RandRange(0.0f, 1.0f) < 0.4f)
 					{
 						CardsToBeDiscarded.Add(i);	
 					}
@@ -100,7 +98,7 @@ void BotAI::MusOrNoMus()
 			}
 			else
 			{
-				if(numberOfCard != 12)
+				if(numberOfCard != 12 && FMath::RandRange(0.0f, 1.0f) < 0.4f)
 				{
 					CardsToBeDiscarded.Add(i);
 				}
@@ -135,8 +133,7 @@ void BotAI::MakeAMove(EBettingPhase CurrentBettingPhase)
 		else if(CanBluff)
 		{
 			float randomPercentageOfBluff = FMath::RandRange(0.0f, 1.0f);
-			//TODO PONR 0.95 o asi
-			if(randomPercentageOfBluff >= 0.5f)
+			if(randomPercentageOfBluff >= 0.95f)
 			{
 				reactMoveToOrdago = ORDAGO;
 				reactEnvidoRocksToOrdago = MusManager.Get()->GetCurrentBetOnTable();
@@ -248,27 +245,23 @@ void BotAI::MakeAMove(EBettingPhase CurrentBettingPhase)
 	//If bot has a nice move or is going to bluff, make or accept the bet
 	if(canPlay)
 	{
+		//If someone is close to winning, through "ÓRDAGO"
+		if(MusManager.Get()->AreAnyParticipantCloseToWinning())
+		{
+			MoveToMake = ORDAGO;
+			int32 allPiedras;
+			MusManager.Get()->GetCurrentMusRules().ObjectiveIs8Amarrakos ? allPiedras = 40 : allPiedras = 30;
+			EnvidoRocksMade = allPiedras;
+		}
 		//If someone made a bet, there is a possibility of incrementing the bet, or playing what is on table
-		if(MusManager.Get()->GetCurrentBetOnTable() > 0)
+		else if(MusManager.Get()->GetCurrentBetOnTable() > 0)
 		{
 			float randomPercentage = FMath::RandRange(0.0f, 1.0f);
-			if(randomPercentage >= 0.7f)
+			if(randomPercentage >= 0.6f)
 			{
-				//If someone is close to winning, through "ÓRDAGO"
-				if(MusManager.Get()->AreAnyParticipantCloseToWinning())
-				{
-					MoveToMake = ORDAGO;
-					int32 allPiedras;
-					MusManager.Get()->GetCurrentMusRules().ObjectiveIs8Amarrakos ? allPiedras = 40 : allPiedras = 30;
-					EnvidoRocksMade = allPiedras;
-				}
-				//Else "ENVIDO"
-				else
-				{
-					MoveToMake = ENVIDO;
-					EnvidoRocksMade = MusManager.Get()->GetCurrentBetOnTable() + FMath::RandRange( 2, 5);
-					++AmountOfEnvidos;
-				}
+				MoveToMake = ENVIDO;
+				EnvidoRocksMade = MusManager.Get()->GetCurrentBetOnTable() + FMath::RandRange( 2, 5);
+				++AmountOfEnvidos;
 			}
 			else
 			{

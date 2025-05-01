@@ -70,6 +70,12 @@ void UMusManager::ParticipantCallsAMove(EParticipant Participant, EMoves Move, i
 				MusTable.Get()->UpdateTableBet(CurrentBetOnTable);
 				ParticipantThatRaisedTheBet = CurrentParticipantIDInTurn;
 			break;
+		case QUIERO:
+				if(!ParticipantsInTheCurrentBet.Contains(Participant))
+				{
+					ParticipantsInTheCurrentBet.Add(Participant);
+				}
+			break;
 		case NOQUIERO:
 		case NOTENGO:
 				ParticipantsInfo[Participant].LastMove = PASO;
@@ -764,6 +770,11 @@ EParticipant UMusManager::CheckGrande()
 	{
 		bool winnerIsSuperior = true;
 		bool foundANewWinner = false;
+		//Add card to cards that aloud the participant to win
+		if(ParticipantsAllCards[winner][i] != 0)
+		{
+			ParticipantsInfo[winner].CardNumberWinners[GRANDE].Add(i);
+		}
 		for (int k = 0; k < participantsInTheBattle.Num(); k++)
 		{
 			//Compare the supposed winner versus the rest
@@ -777,6 +788,7 @@ EParticipant UMusManager::CheckGrande()
 			}
 			else if(ParticipantsAllCards[winner][i] == ParticipantsAllCards[participantsInTheBattle[k]][i])
 			{
+				ParticipantsInfo[participantsInTheBattle[k]].CardNumberWinners[GRANDE].Add(i);
 				winnerIsSuperior = false;
 			}
 			else
@@ -817,6 +829,11 @@ EParticipant UMusManager::CheckChica()
 	{
 		bool winnerIsSuperior = true;
 		bool foundANewWinner = false;
+		//Add card to cards that aloud the participant to win
+		if(ParticipantsAllCards[winner][i] != 0)
+		{
+			ParticipantsInfo[winner].CardNumberWinners[CHICA].Add(i);
+		}
 		for (int k = 0; k < participantsInTheBattle.Num(); k++)
 		{
 			//Compare the supposed winner versus the rest
@@ -831,6 +848,7 @@ EParticipant UMusManager::CheckChica()
 			}
 			else if(ParticipantsAllCards[winner][i] == ParticipantsAllCards[participantsInTheBattle[k]][i])
 			{
+				ParticipantsInfo[participantsInTheBattle[k]].CardNumberWinners[CHICA].Add(i);
 				winnerIsSuperior = false;
 			}
 			else
@@ -883,17 +901,20 @@ EParticipant UMusManager::CheckPares()
 			if(ParticipantsAllCards[participant][i] == 4)
 			{
 				participantsWithPoker.Add(participant, i);
+				ParticipantsInfo[participant].CardNumberWinners[PARES].Add(i);
 				break;
 			}
 			//Check for trios
 			if(ParticipantsAllCards[participant][i] == 3)
 			{
 				participantsWithATrio.Add(participant, i);
+				ParticipantsInfo[participant].CardNumberWinners[PARES].Add(i);
 				break;
 			}
 			//Checks for duos
 			if(ParticipantsAllCards[participant][i] == 2)
 			{
+				ParticipantsInfo[participant].CardNumberWinners[PARES].Add(i);
 				//Check if the player already has one pair
 				if(participantsWithADuo.Contains(participant))
 				{
@@ -1026,6 +1047,7 @@ EParticipant UMusManager::CheckJuego()
 		for (FCards_Struct* participantCard : ParticipantsInfo[participant].ParticipantCards)
 		{
 			sumOfParticipantCard += participantCard->CardValue;
+			ParticipantsInfo[participant].CardNumberWinners[JUEGO].Add(participantCard->Number);
 		}
 		participantsMapTotalSum.Add(participant, sumOfParticipantCard);
 	}
@@ -1073,6 +1095,7 @@ EParticipant UMusManager::CheckPunto()
 		for (FCards_Struct* participantCard : ParticipantsInfo[participant].ParticipantCards)
 		{
 			sumOfParticipantCard += participantCard->CardValue;
+			ParticipantsInfo[participant].CardNumberWinners[JUEGO].Add(participantCard->Number);
 		}
 		participantsMapTotalSum.Add(participant,sumOfParticipantCard);
 	}
@@ -1175,6 +1198,8 @@ void UMusManager::OrdagoInPlay()
 	}
 
 	MusTable.Get()->ShowAllCards();
+	//Show winner cards
+	ShowCardWinner(WinnerOfOrdago, CurrentBettingPhase);
 	GetWorld()->GetTimerManager().SetTimer(
 			WinnerTimer, // handle to cancel timer at a later time
 			this, // the owning object
@@ -1188,6 +1213,8 @@ void UMusManager::ShowGrandeWinner()
 	MusTable.Get()->UpdatePhase(GRANDE, true, WinnerOfGrande);
 	ParticipantsInfo[WinnerOfGrande].AddPiedras(GrandeAmountWon);
 	UpdateParticipantPiedras(WinnerOfGrande);
+	//Show winner cards
+	ShowCardWinner(WinnerOfGrande, GRANDE);
 	GrandeAmountWon = 0;
 	WinnerOfGrande = NOONE;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -1200,9 +1227,12 @@ void UMusManager::ShowGrandeWinner()
 
 void UMusManager::ShowChicaWinner()
 {
+	MusTable.Get()->ResetGlowOfAllCards();
 	MusTable.Get()->UpdatePhase(CHICA, true,WinnerOfChica);
 	ParticipantsInfo[WinnerOfChica].AddPiedras(ChicaAmountWon);
 	UpdateParticipantPiedras(WinnerOfChica);
+	//Show winner cards
+	ShowCardWinner(WinnerOfChica, CHICA);
 	ChicaAmountWon = 0;
 	WinnerOfChica = NOONE;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -1215,11 +1245,14 @@ void UMusManager::ShowChicaWinner()
 
 void UMusManager::ShowPairWinner()
 {
+	MusTable.Get()->ResetGlowOfAllCards();
 	MusTable.Get()->UpdatePhase(PARES, true, WinnerOfPares);
 	if(WinnerOfPares != NOONE)
 	{
 		ParticipantsInfo[WinnerOfPares].AddPiedras(ParesAmountWon);
 		UpdateParticipantPiedras(WinnerOfPares);
+		//Show winner cards
+		ShowCardWinner(WinnerOfPares, PARES);
 	}
 	ParesAmountWon = 0;
 	WinnerOfPares = NOONE;
@@ -1233,6 +1266,7 @@ void UMusManager::ShowPairWinner()
 
 void UMusManager::ShowJuegoWinner()
 {
+	MusTable.Get()->ResetGlowOfAllCards();
 	//Check if there was "JUEGO" or "PUNTO"
 	if(!JuegoWentToPunto)
 	{
@@ -1245,6 +1279,8 @@ void UMusManager::ShowJuegoWinner()
 	}
 	ParticipantsInfo[WinnerOfJuego].AddPiedras(JuegoAmountWon);
 	UpdateParticipantPiedras(WinnerOfJuego);
+	//Show winner cards
+	ShowCardWinner(WinnerOfJuego, JUEGO);
 	JuegoAmountWon = 0;
 	WinnerOfJuego = NOONE;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -1257,11 +1293,17 @@ void UMusManager::ShowJuegoWinner()
 
 void UMusManager::EndShowingWinners()
 {
+	MusTable.Get()->ResetGlowOfAllCards();
 	//Dissolve all cards and wait
 	TArray<int32> cardsToDissolve = {0,1,2,3};
 	for (EParticipant participant : OrderOfParticipantsInGame)
 	{
 		MusTable.Get()->ParticipantsCardsDiscard(participant, cardsToDissolve, false);
+		ParticipantsInfo[participant].CardNumberWinners[GRANDE].Empty();
+		ParticipantsInfo[participant].CardNumberWinners[CHICA].Empty();
+		ParticipantsInfo[participant].CardNumberWinners[PARES].Empty();
+		ParticipantsInfo[participant].CardNumberWinners[JUEGO].Empty();
+		
 	}
 	GetWorld()->GetTimerManager().SetTimer(
 			WinnerTimer, // handle to cancel timer at a later time
@@ -1273,6 +1315,7 @@ void UMusManager::EndShowingWinners()
 
 void UMusManager::EndShowingOrdagoWinner()
 {
+	MusTable.Get()->ResetGlowOfAllCards();
 	ParticipantsInTheCurrentBet.Empty();
 	MusTable.Get()->ResetPlays();
 	MusTable.Get()->UpdatePhase(ORDAGOWINNER, true, WinnerOfOrdago);
@@ -1287,6 +1330,10 @@ void UMusManager::EndShowingOrdagoWinner()
 	{
 		ParticipantsInfo[participant.Key].EnvidoValue = 0;
 		ParticipantsInfo[participant.Key].LastMove = NOMOVE;
+		ParticipantsInfo[participant.Key].CardNumberWinners[GRANDE].Empty();
+		ParticipantsInfo[participant.Key].CardNumberWinners[CHICA].Empty();
+		ParticipantsInfo[participant.Key].CardNumberWinners[PARES].Empty();
+		ParticipantsInfo[participant.Key].CardNumberWinners[JUEGO].Empty();
 	}
 	GetWorld()->GetTimerManager().SetTimer(
 			WinnerTimer, // handle to cancel timer at a later time
@@ -1337,5 +1384,33 @@ void UMusManager::NextRound()
 		ChangeHand();
 		//Update cards
 		ShuffleAndGiveCards();	
+	}
+}
+
+void UMusManager::ShowCardWinner(EParticipant WinnerParticipant, EBettingPhase BettingPhase)
+{
+	for(int32 i = 0; i < ParticipantsInfo[WinnerParticipant].ParticipantCards.Num(); i++)
+	{
+		FCards_Struct* card = ParticipantsInfo[WinnerParticipant].ParticipantCards[i];
+		if(CurrentMusRules.KingsAndAces8)
+		{
+			if(
+				(
+					(card->Number == 3 || card->Number == 12) && ParticipantsInfo[WinnerParticipant].CardNumberWinners[BettingPhase].Contains(12)
+				)
+				|| (
+					(card->Number == 2 || card->Number == 1) && ParticipantsInfo[WinnerParticipant].CardNumberWinners[BettingPhase].Contains(1)
+				   )
+				||
+					ParticipantsInfo[WinnerParticipant].CardNumberWinners[BettingPhase].Contains(card->Number)
+				)
+			{
+				MusTable.Get()->StandOutACard(WinnerParticipant, i, true);
+			}
+		}
+		else if(ParticipantsInfo[WinnerParticipant].CardNumberWinners[BettingPhase].Contains(card->Number))
+		{
+			MusTable.Get()->StandOutACard(WinnerParticipant, i, true);
+		}
 	}
 }

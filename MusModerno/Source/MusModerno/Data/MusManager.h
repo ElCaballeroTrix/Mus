@@ -64,10 +64,17 @@ struct FParticipantStruct
 	int32 EnvidoValue = 0;
 	int32 Amarrakos = 0;
 	int32 Piedras = 0;
+	//This classs does all the decision making of a bot
 	BotAI* BotAI;
+	//This map saves the cards that made the participant won a betting round
+	TMap<EBettingPhase, TArray<int32>> CardNumberWinners;
 	FParticipantStruct()
 	{
 		InitializeCardFrequency();
+		CardNumberWinners.Add(GRANDE);
+		CardNumberWinners.Add(CHICA);
+		CardNumberWinners.Add(PARES);
+		CardNumberWinners.Add(JUEGO);
 	}
 
 	void InitializeCardFrequency()
@@ -139,6 +146,9 @@ public:
 	TObjectPtr<USoundClass> MusicClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| Options")
 	TObjectPtr<USoundClass> SFXClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MUS| DEBUG")
+	bool ShouldBotCardsBeInvisible = true;
 
 	void ShowTable();
 	void StartGame();
@@ -236,6 +246,7 @@ private:
 	void PassTurn();
 	void UpdateParticipantPiedras(EParticipant Participant);
 	void OrdagoInPlay();
+	//---------------WINNERS----------------------------------//
 	void ShowWinners();
 	UFUNCTION()
 	void ShowGrandeWinner();
@@ -251,4 +262,5 @@ private:
 	void EndShowingOrdagoWinner();
 	UFUNCTION()
 	void NextRound();
+	void ShowCardWinner(EParticipant WinnerParticipant, EBettingPhase BettingPhase);
 };

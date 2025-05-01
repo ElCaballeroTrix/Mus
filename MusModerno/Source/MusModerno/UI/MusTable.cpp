@@ -75,33 +75,33 @@ void UMusTable::SetParticipantsCards(EParticipant Participant, TArray<FCards_Str
 		case BOT1:
 			//TODO Should change to UpsideDown True
 				Bot1CurrentCards[0]->ResetDissolve();
-				Bot1CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot1CurrentCards[0]->SetCard(NewCards[0], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot1CurrentCards[1]->ResetDissolve();
-				Bot1CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot1CurrentCards[1]->SetCard(NewCards[1], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot1CurrentCards[2]->ResetDissolve();
-				Bot1CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot1CurrentCards[2]->SetCard(NewCards[2], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot1CurrentCards[3]->ResetDissolve();
-				Bot1CurrentCards[3]->SetCard(NewCards[3], false);
+				Bot1CurrentCards[3]->SetCard(NewCards[3], MusManager.Get()->ShouldBotCardsBeInvisible);
 			break;
 		case BOT2:
 				Bot2CurrentCards[0]->ResetDissolve();
-				Bot2CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot2CurrentCards[0]->SetCard(NewCards[0], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot2CurrentCards[1]->ResetDissolve();
-				Bot2CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot2CurrentCards[1]->SetCard(NewCards[1], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot2CurrentCards[2]->ResetDissolve();
-				Bot2CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot2CurrentCards[2]->SetCard(NewCards[2], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot2CurrentCards[3]->ResetDissolve();
-				Bot2CurrentCards[3]->SetCard(NewCards[3], false);
+				Bot2CurrentCards[3]->SetCard(NewCards[3], MusManager.Get()->ShouldBotCardsBeInvisible);
 			break;
 		case BOT3:
 				Bot3CurrentCards[0]->ResetDissolve();
-				Bot3CurrentCards[0]->SetCard(NewCards[0], false);
+				Bot3CurrentCards[0]->SetCard(NewCards[0], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot3CurrentCards[1]->ResetDissolve();
-				Bot3CurrentCards[1]->SetCard(NewCards[1], false);
+				Bot3CurrentCards[1]->SetCard(NewCards[1], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot3CurrentCards[2]->ResetDissolve();
-				Bot3CurrentCards[2]->SetCard(NewCards[2], false);
+				Bot3CurrentCards[2]->SetCard(NewCards[2], MusManager.Get()->ShouldBotCardsBeInvisible);
 				Bot3CurrentCards[3]->ResetDissolve();
-				Bot3CurrentCards[3]->SetCard(NewCards[3], false);
+				Bot3CurrentCards[3]->SetCard(NewCards[3], MusManager.Get()->ShouldBotCardsBeInvisible);
 			break;
 	}
 }
@@ -370,8 +370,44 @@ void UMusTable::UpdateHand(EParticipant ParticipantHand)
 	}
 }
 
+void UMusTable::StandOutACard(EParticipant Participant, int32 IDOfCard, bool ShouldStandOut)
+{
+	switch (Participant) {
+		case BOT1:
+				Bot1CurrentCards[IDOfCard].Get()->GlowCard(ShouldStandOut);
+			break;
+		case BOT2:
+				Bot2CurrentCards[IDOfCard].Get()->GlowCard(ShouldStandOut);
+			break;
+		case BOT3:
+				Bot3CurrentCards[IDOfCard].Get()->GlowCard(ShouldStandOut);
+			break;
+		case PLAYER:
+				PlayerCurrentCards[IDOfCard].Get()->GlowCard(ShouldStandOut);
+			break;
+	}
+
+}
+
+void UMusTable::ResetGlowOfAllCards()
+{
+	for (int32 i = 0; i < 4; i++)
+	{
+		Bot1CurrentCards[i].Get()->GlowCard(false);
+		Bot2CurrentCards[i].Get()->GlowCard(false);
+		Bot3CurrentCards[i].Get()->GlowCard(false);
+		PlayerCurrentCards[i].Get()->GlowCard(false);
+	}
+}
+
 void UMusTable::ShowAllCards()
 {
+	for (int32 i = 0; i < 4; i++)
+	{
+		Bot1CurrentCards[i].Get()->FlipCard();
+		Bot2CurrentCards[i].Get()->FlipCard();
+		Bot3CurrentCards[i].Get()->FlipCard();
+	}
 }
 
 void UMusTable::GameEnded(bool PlayerWon)

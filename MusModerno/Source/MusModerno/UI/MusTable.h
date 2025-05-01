@@ -41,6 +41,8 @@ public:
 	void ParticipantsCardsDiscard(EParticipant Participant, TArray<int32> CardsToDiscard, bool IsInDiscardingPhase = true);
 	void ActivePlayerCardsForDiscard();
 	void UpdateHand(EParticipant ParticipantHand);
+	void StandOutACard(EParticipant Participant, int32 IDOfCard, bool ShouldStandOut);
+	void ResetGlowOfAllCards();
 	void ShowAllCards();
 	void GameEnded(bool PlayerWon);
 	

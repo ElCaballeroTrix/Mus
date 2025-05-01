@@ -10,7 +10,9 @@ void UCardWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	DynamicMat = UKismetMaterialLibrary::CreateDynamicMaterialInstance(GetWorld(), DissolveMaterial);
-	DynamicMat.Get()->SetScalarParameterValue("Dissolve", DissolvedCompletely);
+	DynamicMat.Get()->SetScalarParameterValue("Dissolve", DissolvedNothing);
+	DynamicMat2 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(GetWorld(), DissolveMaterial);
+	DynamicMat2.Get()->SetScalarParameterValue("Dissolve", DissolvedNothing);
 	DissolveBlend.SetValueRange(DissolvedCompletely, DissolvedNothing);
 	DissolveBlend.SetBlendTime(DissolveTime);
 	SetIsEnabled(false);
@@ -25,19 +27,31 @@ void UCardWidget::SetCard(FCards_Struct* _CardInfo, bool UpsideDown)
 	}
 	//Set the information and modify the dissolve material with the proper texture
 	CardInfo = _CardInfo;
-	TObjectPtr<UTexture> cardTexture;
+	IsUpsideDown = UpsideDown;
+	//Set proper textures
 	if(UpsideDown)
 	{
-		cardTexture = Cast<UTexture>(BackOfCardBrush.GetResourceObject());
+		CardImageBack.Get()->SetRenderScale(FVector2D::One());
+		CardImage.Get()->SetRenderScale(FVector2D(0.0f, 1.0f));
 	}
 	else
 	{
-		cardTexture = Cast<UTexture>(CardInfo->CardBrush.GetResourceObject());
+		DynamicMat.Get()->SetScalarParameterValue("Dissolve", DissolvedCompletely);
+		CardImageBack.Get()->SetRenderScale(FVector2D(0.0f, 1.0f));
 	}
+	TObjectPtr<UTexture> cardTexture;
+	TObjectPtr<UTexture> cardBackTexture;
+	cardTexture = Cast<UTexture>(CardInfo->CardBrush.GetResourceObject());
 	DynamicMat.Get()->SetTextureParameterValue("MaterialTexture", cardTexture);
 	FSlateBrush cardBrush = CardImage.Get()->GetBrush();
 	cardBrush.SetResourceObject(DynamicMat);
 	CardImage.Get()->SetBrush(cardBrush);
+	
+	cardBackTexture = Cast<UTexture>(BackOfCardBrush.GetResourceObject());
+	DynamicMat2.Get()->SetTextureParameterValue("MaterialTexture", cardBackTexture);
+	FSlateBrush cardBackBrush = CardImage.Get()->GetBrush();
+	cardBackBrush.SetResourceObject(DynamicMat2);
+	CardImageBack.Get()->SetBrush(cardBackBrush);
 }
 
 void UCardWidget::SetCardActive(bool CardActive)
@@ -75,6 +89,20 @@ void UCardWidget::ResetDissolve()
 	IsDissolvedCompletely = true;
 }
 
+void UCardWidget::GlowCard(bool ShouldGlow)
+{
+	ShouldGlow ? CardImageGlow.Get()->SetVisibility(ESlateVisibility::SelfHitTestInvisible) : CardImageGlow.Get()->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void UCardWidget::FlipCard()
+{
+	if(IsUpsideDown)
+	{
+		PlayAnimation(CardFlipAnimation);
+		IsUpsideDown = false;
+	}
+}
+
 void UCardWidget::NativeOnClicked()
 {
 	Super::NativeOnClicked();
@@ -89,7 +117,14 @@ void UCardWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	if(ShouldDissolve)
 	{
 		DissolveBlend.Update(InDeltaTime);
-		DynamicMat.Get()->SetScalarParameterValue("Dissolve", DissolveBlend.GetBlendedValue());
+		if(IsUpsideDown)
+		{
+			DynamicMat2.Get()->SetScalarParameterValue("Dissolve", DissolveBlend.GetBlendedValue());
+		}
+		else
+		{
+			DynamicMat.Get()->SetScalarParameterValue("Dissolve", DissolveBlend.GetBlendedValue());	
+		}
 		if(DissolveBlend.IsComplete())
 		{
 			ShouldDissolve = false;
