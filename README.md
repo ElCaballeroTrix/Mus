@@ -4,6 +4,7 @@ This is a prototype of the Spanish card game called "Mus". It has been created i
 In the game "Mus", the goal is to reach a set number of points by winning rounds, having the best hands in four categories: "Grande", "Chica", "Parejas", and "Juego", where players can discard cards and engage in betting and bluffing in the rounds ending in each player revealing their cards.
 <img width="1230" height="761" alt="Mus1" src="https://github.com/user-attachments/assets/1621be2a-e8dc-432d-bd2c-311daf5de75c" />
 
+The logic of the game can be found in the "Source/MusModerno/Data" folder where the "MusManager" and "BotAI" classes are the most important and, the logic of the UI elements in the "Source/MusModerno/UI" where the "MusTable" class stands out. 
 ## Rounds
 In each round, the player has a series of actions that it can do depending on the current state of the game. If the cards have just been given to the players, they can decide either to call “Mus”, start the game, or “No Mus”, they want to discard some cards for new ones. If only one of them calls “Mus”, the betting rounds begin. In each betting round, a participant can pass its turn, place a bet, accept the bet, or go all in “Órdago”. Once all categories are over, the winners of each round are announced as well as their price.\ <img width="1227" height="762" alt="Mus2" src="https://github.com/user-attachments/assets/9a97b572-cbbd-4f1e-855f-090b60d90182" />
 
